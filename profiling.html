@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大模型训练任务 - 性能扫描结果</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --success-color: #2ecc71;
+            --bg-color: #f4f7f9;
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+            --text-muted: #7f8c8d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 30px;
+        }
+
+        .header {
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
+
+        /* 顶部两列布局：性能球 + 桑基图 */
+        .dashboard-top {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.04);
+            border: 1px solid rgba(0,0,0,0.02);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-main);
+        }
+
+        /* 动态性能球样式 */
+        .score-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            height: 250px;
+        }
+
+        .score-circle {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: conic-gradient(var(--primary-color) 0%, #e0e7ff 0%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 30px rgba(52, 152, 219, 0.3);
+            animation: pulse 2s infinite alternate; /* 呼吸灯视觉张力 */
+            transition: background 1s ease-out, box-shadow 0.5s ease;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 20px rgba(52, 152, 219, 0.2); transform: scale(0.98); }
+            100% { box-shadow: 0 0 40px rgba(52, 152, 219, 0.5); transform: scale(1.02); }
+        }
+
+        .score-inner {
+            width: 170px;
+            height: 170px;
+            background: var(--card-bg);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .score-value {
+            font-size: 48px;
+            font-weight: bold;
+            color: var(--primary-color);
+            transition: color 0.5s;
+        }
+
+        .score-label {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
+
+        /* 桑基图容器 */
+        #sankey-chart {
+            width: 100%;
+            height: 300px;
+        }
+
+        /* 问题列表卡片网格 */
+        .issues-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .issue-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            border: 1px solid #eef2f5;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .issue-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.06);
+        }
+
+        .issue-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #e74c3c; /* 默认未解决为红色提示 */
+        }
+
+        .issue-card.resolved::before {
+            background: var(--success-color); /* 解决后变绿 */
+        }
+
+        .issue-tag {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            background: #ffeaa7;
+            color: #d35400;
+            margin-bottom: 10px;
+        }
+
+        .issue-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .issue-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .issue-metrics {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .metric-up { color: var(--success-color); font-weight: bold; }
+        .metric-time { color: var(--primary-color); font-weight: bold; }
+
+        .btn-resolve {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            background: #edf2f7;
+            color: var(--text-main);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-resolve:hover {
+            background: #e2e8f0;
+        }
+
+        .btn-resolve.active {
+            background: var(--success-color);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>训练任务性能扫描分析</h1>
+        <p>任务 ID: LLM-Train-7782 | 框架: Megatron-LM | 扫描时间: 刚刚</p>
+    </div>
+
+    <div class="dashboard-top">
+        <div class="card">
+            <div class="card-title">综合性能评分</div>
+            <div class="score-container">
+                <div class="score-circle" id="scoreCircle">
+                    <div class="score-inner">
+                        <div class="score-value" id="scoreValue">64<span style="font-size: 24px;">%</span></div>
+                        <div class="score-label">集群算力利用率</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">性能损耗分布分析 (Sankey)</div>
+            <div id="sankey-chart"></div>
+        </div>
+    </div>
+
+    <h2 class="card-title" style="margin-left: 5px;">识别到的性能瓶颈</h2>
+    <div class="issues-grid">
+        <div class="issue-card" id="card-1">
+            <div class="issue-tag">算子</div>
+            <div class="issue-title">FlashAttention 算子未开启</div>
+            <div class="issue-desc">自注意力机制计算耗时异常，建议切换至硬件优化的 FlashAttention 算子进行加速。</div>
+            <div class="issue-metrics">
+                <span>预计提升: <span class="metric-up">+12%</span></span>
+                <span>缩短时间: <span class="metric-time">约 15 小时</span></span>
+            </div>
+            <button class="btn-resolve" onclick="toggleResolve('card-1', 12, this)">标记为已解决</button>
+        </div>
+
+        <div class="issue-card" id="card-2">
+            <div class="issue-tag">传输</div>
+            <div class="issue-title">AllReduce 通信带宽阻塞</div>
+            <div class="issue-desc">跨节点梯度同步时发现网络拥塞，建议调整 Ring-AllReduce 拓扑或增大 bucket_size。</div>
+            <div class="issue-metrics">
+                <span>预计提升: <span class="metric-up">+8%</span></span>
+                <span>缩短时间: <span class="metric-time">约 9 小时</span></span>
+            </div>
+            <button class="btn-resolve" onclick="toggleResolve('card-2', 8, this)">标记为已解决</button>
+        </div>
+
+        <div class="issue-card" id="card-3">
+            <div class="issue-tag">内存</div>
+            <div class="issue-title">显存碎片化严重</div>
+            <div class="issue-desc">激活值保存策略未优化，导致大量显存碎片，触发了频繁的显存交换 (Swap)。</div>
+            <div class="issue-metrics">
+                <span>预计提升: <span class="metric-up">+6%</span></span>
+                <span>缩短时间: <span class="metric-time">约 7 小时</span></span>
+            </div>
+            <button class="btn-resolve" onclick="toggleResolve('card-3', 6, this)">标记为已解决</button>
+        </div>
+
+        <div class="issue-card" id="card-4">
+            <div class="issue-tag">慢卡</div>
+            <div class="issue-title">节点 N-03 存在降频慢卡</div>
+            <div class="issue-desc">检测到该节点 GPU_4 温度过高导致触发硬件降频，拖慢全局同步屏障 (Barrier)。</div>
+            <div class="issue-metrics">
+                <span>预计提升: <span class="metric-up">+5%</span></span>
+                <span>缩短时间: <span class="metric-time">约 5 小时</span></span>
+            </div>
+            <button class="btn-resolve" onclick="toggleResolve('card-4', 5, this)">标记为已解决</button>
+        </div>
+        
+        <div class="issue-card" id="card-5">
+            <div class="issue-tag">计算</div>
+            <div class="issue-title">数据加载器 (DataLoader) 瓶颈</div>
+            <div class="issue-desc">CPU 预处理数据速度赶不上 GPU 消费速度，GPU 处于饥饿等待状态 (Volatile GPU-Util 低)。</div>
+            <div class="issue-metrics">
+                <span>预计提升: <span class="metric-up">+5%</span></span>
+                <span>缩短时间: <span class="metric-time">约 6 小时</span></span>
+            </div>
+            <button class="btn-resolve" onclick="toggleResolve('card-5', 5, this)">标记为已解决</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 核心逻辑：管理分数和 UI 更新 ---
+        let currentScore = 64; // 初始分数
+
+        function updateScoreCircle(score) {
+            const circle = document.getElementById('scoreCircle');
+            const valueText = document.getElementById('scoreValue');
+            
+            // 限制分数不超过 100
+            score = Math.min(score, 100);
+            
+            // 更新中间的数字
+            valueText.innerHTML = `${score}<span style="font-size: 24px;">%</span>`;
+            
+            // 根据分数改变颜色：低于80蓝色，80以上绿色，满分金色
+            let color = 'var(--primary-color)';
+            if (score >= 100) {
+                color = '#f1c40f'; // 金色
+            } else if (score >= 80) {
+                color = 'var(--success-color)';
+            }
+            
+            valueText.style.color = color;
+            
+            // 使用 CSS conic-gradient 实现环形进度条动画
+            const degree = (score / 100) * 360;
+            circle.style.background = `conic-gradient(${color} ${degree}deg, #e0e7ff ${degree}deg)`;
+            
+            // 更新发光颜色
+            if(score >= 100) {
+                circle.style.boxShadow = `0 0 40px rgba(241, 196, 15, 0.6)`;
+            } else if (score >= 80) {
+                circle.style.boxShadow = `0 0 30px rgba(46, 204, 113, 0.4)`;
+            } else {
+                circle.style.boxShadow = `0 0 30px rgba(52, 152, 219, 0.3)`;
+            }
+        }
+
+        // 初始化圆环状态
+        updateScoreCircle(currentScore);
+
+        // 卡片按钮点击事件
+        function toggleResolve(cardId, scoreIncrease, btnElement) {
+            const card = document.getElementById(cardId);
+            const isResolved = card.classList.contains('resolved');
+
+            if (isResolved) {
+                // 取消解决 -> 扣除分数
+                currentScore -= scoreIncrease;
+                card.classList.remove('resolved');
+                btnElement.classList.remove('active');
+                btnElement.innerText = "标记为已解决";
+            } else {
+                // 解决问题 -> 增加分数
+                currentScore += scoreIncrease;
+                card.classList.add('resolved');
+                btnElement.classList.add('active');
+                btnElement.innerText = "✓ 优化已应用";
+            }
+            
+            updateScoreCircle(currentScore);
+        }
+
+        // --- 桑基图 (ECharts) 初始化 ---
+        document.addEventListener("DOMContentLoaded", function() {
+            var chartDom = document.getElementById('sankey-chart');
+            var myChart = echarts.init(chartDom);
+            
+            var option = {
+                tooltip: {
+                    trigger: 'item',
+                    triggerOn: 'mousemove'
+                },
+                series: {
+                    type: 'sankey',
+                    layout: 'none',
+                    emphasis: {
+                        focus: 'adjacency'
+                    },
+                    nodeAlign: 'left',
+                    data: [
+                        { name: '总性能损耗' },
+                        { name: '算子' },
+                        { name: '传输' },
+                        { name: '内存' },
+                        { name: '计算' },
+                        { name: '慢卡' }
+                    ],
+                    links: [
+                        { source: '总性能损耗', target: '算子', value: 12 },
+                        { source: '总性能损耗', target: '传输', value: 8 },
+                        { source: '总性能损耗', target: '内存', value: 6 },
+                        { source: '总性能损耗', target: '计算', value: 5 },
+                        { source: '总性能损耗', target: '慢卡', value: 5 }
+                    ],
+                    lineStyle: {
+                        color: 'source',
+                        curveness: 0.5,
+                        opacity: 0.3
+                    },
+                    itemStyle: {
+                        borderWidth: 1,
+                        borderColor: '#aaa'
+                    },
+                    label: {
+                        color: '#2c3e50',
+                        fontSize: 13,
+                        fontWeight: 'bold'
+                    }
+                }
+            };
+
+            myChart.setOption(option);
+            
+            // 响应式图表缩放
+            window.addEventListener('resize', function() {
+                myChart.resize();
+            });
+        });
+    </script>
+</body>
+</html>

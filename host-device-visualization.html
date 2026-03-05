@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Host-Device Data Flow Visualization</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/MotionPathPlugin.min.js"></script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        // 1. Scene
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x111111);
+
+        // 2. Camera
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 15, 35);
+
+        // 3. Renderer
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // 4. Label Renderer
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        document.body.appendChild(labelRenderer.domElement);
+
+        // 5. Controls
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.target.set(0, 2, 0);
+
+        // 7. Post-processing (Bloom)
+        const renderScene = new RenderPass(scene, camera);
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.threshold = 0;
+        bloomPass.strength = 1.2; // Intensity of the glow
+        bloomPass.radius = 0.5;
+
+        const composer = new EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+
+        // 6. Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        directionalLight.position.set(5, 10, 7.5);
+        scene.add(directionalLight);
+
+        // Helper function to create labeled boxes
+        function createLabeledBox(width, height, depth, color, labelText, position) {
+            const group = new THREE.Group();
+
+            const geometry = new THREE.BoxGeometry(width, height, depth);
+            const material = new THREE.MeshStandardMaterial({ color, transparent: true, opacity: 0.8 });
+            const box = new THREE.Mesh(geometry, material);
+            group.add(box);
+
+            const textDiv = document.createElement('div');
+            textDiv.className = 'label';
+            textDiv.textContent = labelText;
+            textDiv.style.color = 'white';
+            textDiv.style.fontFamily = 'Arial';
+            textDiv.style.fontSize = '16px';
+            textDiv.style.textShadow = '0 0 4px black';
+
+            const label = new CSS2DObject(textDiv);
+            label.position.set(0, height / 2 + 2, 0);
+            group.add(label);
+
+            group.position.copy(position);
+            scene.add(group);
+            return group;
+        }
+
+        // --- Sandbox Layout ---
+
+        // Host Area (Left)
+        const ram = createLabeledBox(12, 2, 18, 0x0077ff, 'System RAM', new THREE.Vector3(-22, 0, 0));
+        const cpu = createLabeledBox(5, 5, 5, 0x00aaff, 'CPU', new THREE.Vector3(-10, 1.5, 0));
+
+        // Device Area (Right)
+        const vram = createLabeledBox(10, 2, 14, 0x7700ff, 'VRAM', new THREE.Vector3(22, 0, 0));
+        const gpu = createLabeledBox(6, 6, 6, 0xaa00ff, 'GPU Core', new THREE.Vector3(10, 2, 0));
+
+        // PCIe Bus (the "highway")
+        const pciePath = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(-13, 1, 0), // Point near CPU
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(13, 1, 0)   // Point near GPU
+        ]);
+        const pcieGeometry = new THREE.TubeGeometry(pciePath, 64, 0.3, 8, false);
+        const pcieMaterial = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.5, roughness: 0.5 });
+        const pcieBus = new THREE.Mesh(pcieGeometry, pcieMaterial);
+        scene.add(pcieBus);
+
+        // --- Animation Paths ---
+        const h_to_d_path = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(-22, 2, 0),   // 1. Start from RAM
+            new THREE.Vector3(-15, 2, 0),
+            new THREE.Vector3(-10, 4, 0),   // 2. Go through CPU
+            new THREE.Vector3(-5, 2, 0),
+            new THREE.Vector3(0, 1, 0),     // 3. Travel PCIe bus
+            new THREE.Vector3(15, 2, 0),
+            new THREE.Vector3(22, 2, 0),    // 4. Arrive at VRAM
+        ]);
+
+        const forward_pass_path = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(22, 2, 5),    // 1. From VRAM
+            new THREE.Vector3(16, 3, 0),
+            new THREE.Vector3(10, 5, -5),  // 2. To GPU Core
+        ]);
+
+        const backward_pass_path = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(10, 5, 5),   // 1. From GPU Core
+            new THREE.Vector3(16, 3, 0),
+            new THREE.Vector3(22, 2, -5),  // 2. To VRAM
+        ]);
+
+        const d_to_h_path = new THREE.CatmullRomCurve3(h_to_d_path.getPoints().reverse());
+
+        // --- Particle Engine ---
+        gsap.registerPlugin(MotionPathPlugin);
+
+        const particleGeom = new THREE.SphereGeometry(0.4, 8, 8);
+        const h2dMat = new THREE.MeshStandardMaterial({ color: 0xffff00, emissive: 0xffff00, emissiveIntensity: 2 });
+        const gpuMat = new THREE.MeshStandardMaterial({ color: 0xff00ff, emissive: 0xff00ff, emissiveIntensity: 2 });
+        const d2hMat = new THREE.MeshStandardMaterial({ color: 0x88ccff, emissive: 0x88ccff, emissiveIntensity: 2 });
+
+        const particlePool = [];
+        for (let i = 0; i < 100; i++) {
+            const particle = new THREE.Mesh(particleGeom);
+            particle.visible = false;
+            scene.add(particle);
+            particlePool.push(particle);
+        }
+
+        let currentParticle = 0;
+        function getParticleFromPool() {
+            const particle = particlePool[currentParticle];
+            currentParticle = (currentParticle + 1) % particlePool.length;
+            return particle;
+        }
+
+        // --- Animation Triggers ---
+        function triggerHtoDTransfer() {
+            const particle = getParticleFromPool();
+            particle.material = h2dMat;
+            particle.position.copy(h_to_d_path.getPoint(0));
+            particle.visible = true;
+
+            gsap.to(particle.position, {
+                motionPath: { path: h_to_d_path.getPoints(50), align: "self" },
+                duration: 2.5,
+                ease: "power1.inOut",
+                onComplete: () => {
+                    particle.visible = false;
+                    startGpuWork(); // Once data arrives, start GPU work
+                }
+            });
+        }
+
+        function startGpuWork() {
+            const tl = gsap.timeline();
+            const gpuMesh = gpu.children[0];
+            tl.to(gpuMesh.material.emissive, { r: 1, g: 0, b: 1, duration: 0.1 }); // Flash GPU
+
+            // Simulate a few forward/backward passes
+            for (let i = 0; i < 3; i++) {
+                tl.add(triggerGpuPass(forward_pass_path, 0.4));
+                tl.add(triggerGpuPass(backward_pass_path, 0.4), ">-0.2");
+            }
+
+            tl.to(gpuMesh.material.emissive, { r: 0, g: 0, b: 0, duration: 0.2 }); // Turn off flash
+
+            // Occasionally, send results back to host
+            if (Math.random() < 0.3) {
+                tl.add(triggerDtoHTransfer, ">-0.5");
+            }
+        }
+
+        function triggerGpuPass(path, duration) {
+            return () => { // Return a function for the timeline
+                const particle = getParticleFromPool();
+                particle.material = gpuMat;
+                particle.position.copy(path.getPoint(0));
+                particle.visible = true;
+                gsap.to(particle.position, {
+                    motionPath: { path: path.getPoints(20) },
+                    duration: duration,
+                    ease: "sine.inOut",
+                    onComplete: () => particle.visible = false
+                });
+            };
+        }
+
+        function triggerDtoHTransfer() {
+            const particle = getParticleFromPool();
+            particle.material = d2hMat;
+            particle.position.copy(d_to_h_path.getPoint(0));
+            particle.visible = true;
+
+            gsap.to(particle.position, {
+                motionPath: { path: d_to_h_path.getPoints(50) },
+                duration: 3.0,
+                ease: "power1.inOut",
+                onComplete: () => particle.visible = false
+            });
+        }
+
+        // Start the main data loading loop
+        setInterval(triggerHtoDTransfer, 1000);
+
+
+        // --- Description Labels ---
+        function createDescriptionLabel(labelText, position) {
+            const textDiv = document.createElement('div');
+            textDiv.textContent = labelText;
+            textDiv.style.color = 'rgba(255, 255, 255, 0.7)';
+            textDiv.style.fontFamily = 'Arial';
+            textDiv.style.fontSize = '14px';
+            textDiv.style.textShadow = '0 0 2px black';
+            textDiv.style.pointerEvents = 'none';
+
+            const label = new CSS2DObject(textDiv);
+            label.position.copy(position);
+            scene.add(label);
+            return label;
+        }
+
+        createDescriptionLabel('前向/反向传播: 粒子在GPU与VRAM间高速往返', new THREE.Vector3(16, -3, 0));
+        createDescriptionLabel('DtoH 传输: 蓝色粒子从VRAM回流至RAM', new THREE.Vector3(0, -3, 0));
+        createDescriptionLabel('后期特效: 辉光(Bloom)效果提升科技感', new THREE.Vector3(-25, -5, 0));
+
+
+
+
+
+        // Handle window resizing
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            controls.update();
+
+            // Simple CPU animation
+            const cpuMesh = cpu.children[0];
+            if (Math.random() > 0.95) {
+                cpuMesh.material.emissive.setHex(0xffff00);
+            } else {
+                cpuMesh.material.emissive.setHex(0x000000);
+            }
+
+            composer.render(); // Use composer to render with post-processing
+            labelRenderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>

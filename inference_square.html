@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>CNN Inference: Square</title>
+  <!-- Load Tailwind CSS v3 -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <!-- Google Fonts: Lexend -->
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1232e2',
+          },
+          fontFamily: {
+            sans: ['Lexend', 'sans-serif'],
+          },
+          borderRadius: {
+            'm3': '8px',
+          }
+        }
+      }
+    }
+  </script>
+  <style data-purpose="custom-animations">
+    @keyframes highlightPulse {
+      0% {
+        outline: 3px solid rgba(18, 50, 226, 0.5);
+      }
+      50% {
+        outline: 3px solid rgba(18, 50, 226, 1);
+      }
+      100% {
+        outline: 3px solid rgba(18, 50, 226, 0.5);
+      }
+    }
+    .active-kernel {
+      animation: highlightPulse 1.5s infinite;
+      z-index: 10;
+    }
+    .cell-transition {
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+    .sliding-window {
+      position: absolute;
+      border: 2px solid #1232e2;
+      background-color: rgba(18, 50, 226, 0.1);
+      pointer-events: none;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 20;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-900 min-h-screen">
+  <!-- BEGIN: Main Layout -->
+  <main class="flex h-screen overflow-hidden">
+    <!-- BEGIN: Left Section - Visualization -->
+    <section class="w-[75%] p-6 overflow-y-auto border-r border-slate-200 bg-white" data-purpose="convolution-visualization">
+      <header class="mb-8">
+        <div class="flex justify-between items-center">
+          <h1 class="text-2xl font-bold text-slate-800">三角形图案识别-模型推理</h1>
+          <div class="flex items-center p-1 bg-slate-200 rounded-lg" role="tablist">
+            <a href="./CNN0304.html" class="px-4 py-1.5 text-sm font-semibold text-slate-600 hover:bg-white/60 rounded-md" role="tab" aria-selected="false">训练</a>
+            <button class="px-4 py-1.5 text-sm font-semibold text-white bg-primary rounded-md shadow-sm" role="tab" aria-selected="true">推理（正方形）</button>
+            <a href="./inference_small_triangle.html" class="px-4 py-1.5 text-sm font-semibold text-slate-600 hover:bg-white/60 rounded-md" role="tab" aria-selected="false">推理（小三角形）</a>
+          </div>
+        </div>
+        <p class="text-slate-500 text-sm mt-2">使用训练好的模型，对新的“正方形”图案进行识别</p>
+      </header>
+      <div class="grid grid-cols-5 gap-8 items-start">
+        <!-- Column 1: Filter -->
+        <div class="flex flex-col gap-12" data-purpose="filter-column">
+          <div class="space-y-4">
+            <h3 class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Filter 1 (3x3)</h3>
+            <div class="grid grid-cols-3 p-2 bg-slate-100 rounded-m3 border border-slate-200 gap-0.5 w-fit" id="filter1-container"></div>
+          </div>
+          <div class="space-y-4">
+            <h3 class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Filter 2 (2x2)</h3>
+            <div class="grid grid-cols-2 p-2 bg-slate-100 rounded-m3 border border-slate-200 inline-block w-fit gap-[2px]" id="filter2-container">
+              <!-- JS Injected Cells -->
+            </div>
+          </div>
+        </div>
+        <!-- Column 2: Input -->
+        <div class="space-y-4 relative" data-purpose="input-column">
+          <h3 class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Input (5x5)</h3>
+          <div class="relative inline-block p-1 bg-white border-2 border-slate-200 rounded-m3 shadow-sm">
+            <div class="grid grid-cols-5 relative gap-[2px]" id="input-container">
+              <!-- JS Injected Cells -->
+            </div>
+            <!-- Sliding Window for Conv1 -->
+            <div class="sliding-window hidden" id="window-conv1" style="width: 104px; height: 104px;"></div>
+          </div>
+          <div class="mt-2 text-xs text-slate-400 italic">Red square input pattern</div>
+        </div>
+        <!-- Column 3: Conv1 -->
+        <div class="space-y-4 relative" data-purpose="conv1-column">
+          <h3 class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Conv1 (3x3)</h3>
+          <div class="relative inline-block p-1 bg-slate-50 border border-slate-200 rounded-m3">
+            <div class="grid grid-cols-3 relative gap-[2px]" id="conv1-container">
+              <!-- JS Injected Cells -->
+            </div>
+            <!-- Sliding Window for Conv2 -->
+            <div class="sliding-window hidden" id="window-conv2" style="width: 70px; height: 70px;"></div>
+          </div>
+        </div>
+        <!-- Column 4: Conv2 -->
+        <div class="space-y-4" data-purpose="conv2-column">
+          <h3 class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Conv2 (2x2)</h3>
+          <div class="inline-block p-1 bg-slate-50 border border-slate-200 rounded-m3">
+            <div class="grid grid-cols-2 gap-[2px]" id="conv2-container">
+              <!-- JS Injected Cells -->
+            </div>
+          </div>
+        </div>
+        <!-- Column 5: MaxPool -->
+        <div class="space-y-4" data-purpose="maxpool-column">
+          <h3 class="text-sm font-semibold text-slate-600 uppercase tracking-wider">MaxPool (1x2)</h3>
+          <div class="inline-block p-1 bg-slate-50 border border-slate-200 rounded-m3">
+            <div class="grid gap-[2px] grid-cols-2" id="maxpool-container">
+              <!-- JS Injected Cells -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- END: Left Section -->
+    <!-- BEGIN: Right Section - Controls -->
+    <aside class="w-[25%] p-6 flex flex-col gap-8 bg-slate-50" data-purpose="controls-panel">
+      <div class="bg-white p-6 rounded-m3 shadow-sm border border-slate-200 h-48 flex flex-col items-center justify-center text-center">
+        <h2 class="text-sm font-bold text-slate-400 uppercase mb-4">推理结果</h2>
+        <div class="text-xl font-bold transition-all duration-300" id="prediction-display">
+          Waiting for processing...
+        </div>
+      </div>
+      <div class="space-y-4">
+        <button class="w-full py-4 bg-primary text-white font-semibold rounded-m3 hover:opacity-90 active:scale-[0.98] transition-all shadow-md flex items-center justify-center gap-2" id="btn-start">
+          <span>执行推理</span>
+        </button>
+      </div>
+      <div class="mt-auto bg-slate-200/50 p-4 rounded-m3 text-xs text-slate-500 leading-relaxed">
+        <strong>Information:</strong><br />
+        Filter 1: 3x3 Stride 1<br />
+        Filter 2: 2x2 Stride 1<br />
+        MaxPool: Global Row Max
+      </div>
+    </aside>
+    <!-- END: Right Section -->
+  </main>
+  <!-- END: Main Layout -->
+  <script data-purpose="cnn-logic">
+    // Initialization and Global State
+    const CONFIG = {
+      primaryColor: '#1232e2',
+      filter1Size: 3,
+      filter2Size: 2,
+      inputSize: 5,
+      conv1Size: 3,
+      conv2Size: 2,
+      meanVal: 0.272,
+      animSpeed: 400,
+    };
+
+    let f1Data = [];
+    let f2Data = [];
+    let inputData = [];
+    let conv1Results = [];
+
+    function createGridCells(containerId, size, rows, cols, initialVal = 0) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      const data = [];
+      for (let i = 0; i < rows * cols; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'w-8 h-8 flex items-center justify-center text-[10px] border border-slate-300 cell-transition rounded-sm';
+        
+        let value;
+        if (Array.isArray(initialVal)) {
+            value = initialVal[i];
+        } else if (typeof initialVal === 'function') {
+            value = initialVal();
+        } else {
+            value = initialVal;
+        }
+        
+        cell.textContent = parseFloat(value).toFixed(2);
+        container.appendChild(cell);
+        data.push(parseFloat(value));
+      }
+      return data;
+    }
+
+    function init() {
+      const storedF1Data = localStorage.getItem('cnn_f1Data');
+      const storedF2Data = localStorage.getItem('cnn_f2Data');
+
+      if (storedF1Data) {
+        f1Data = createGridCells('filter1-container', 3, 3, 3, JSON.parse(storedF1Data));
+      } else {
+        f1Data = createGridCells('filter1-container', 3, 3, 3, () => (Math.random() * 0.4 + (CONFIG.meanVal - 0.2)).toFixed(2));
+      }
+
+      if (storedF2Data) {
+        f2Data = createGridCells('filter2-container', 2, 2, 2, JSON.parse(storedF2Data));
+      } else {
+        f2Data = createGridCells('filter2-container', 2, 2, 2, () => (Math.random() * 0.4 + (CONFIG.meanVal - 0.2)).toFixed(2));
+      }
+
+      const inputGrid = document.getElementById('input-container');
+      inputGrid.innerHTML = '';
+      inputData = [];
+      // Square Pattern
+      const squarePattern = [
+        0.00, 0.00, 0.00, 0.00, 0.00,
+        0.00, 1.00, 1.00, 1.00, 0.00,
+        0.00, 1.00, 1.00, 1.00, 0.00,
+        0.00, 1.00, 1.00, 1.00, 0.00,
+        0.00, 0.00, 0.00, 0.00, 0.00
+      ];
+
+      squarePattern.forEach(val => {
+        const cell = document.createElement('div');
+        cell.className = 'w-8 h-8 flex items-center justify-center text-[10px] border border-slate-200 cell-transition';
+        cell.style.backgroundColor = `rgba(239, 68, 68, ${val})`;
+        cell.textContent = val.toFixed(2);
+        inputGrid.appendChild(cell);
+        inputData.push(val);
+      });
+
+      createGridCells('conv1-container', 3, 3, 3, '');
+      createGridCells('conv2-container', 2, 2, 2, '');
+      createGridCells('maxpool-container', 2, 1, 2, '');
+    }
+
+    async function runInference() {
+      const btnStart = document.getElementById('btn-start');
+      btnStart.disabled = true;
+      document.getElementById('prediction-display').textContent = "Processing...";
+
+      const f1Cont = document.getElementById('filter1-container');
+      f1Cont.classList.add('active-kernel');
+      const win1 = document.getElementById('window-conv1');
+      const conv1Cells = document.getElementById('conv1-container').children;
+      win1.classList.remove('hidden');
+
+      conv1Results = [];
+      for (let r = 0; r < CONFIG.conv1Size; r++) {
+        for (let c = 0; c < CONFIG.conv1Size; c++) {
+          win1.style.top = `${r * 34}px`;
+          win1.style.left = `${c * 34}px`;
+          await new Promise(r => setTimeout(r, CONFIG.animSpeed));
+          let sum = 0;
+          for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+              sum += inputData[(r + i) * 5 + (c + j)] * f1Data[i * 3 + j];
+            }
+          }
+          conv1Results.push(sum);
+          conv1Cells[r * 3 + c].textContent = sum.toFixed(2);
+          conv1Cells[r * 3 + c].style.backgroundColor = `rgba(239, 68, 68, ${Math.min(sum / 3, 1)})`;
+        }
+      }
+
+      win1.classList.add('hidden');
+      f1Cont.classList.remove('active-kernel');
+      const f2Cont = document.getElementById('filter2-container');
+      f2Cont.classList.add('active-kernel');
+      const win2 = document.getElementById('window-conv2');
+      const conv2Cells = document.getElementById('conv2-container').children;
+      win2.classList.remove('hidden');
+
+      let conv2Results = [];
+      for (let r = 0; r < CONFIG.conv2Size; r++) {
+        for (let c = 0; c < CONFIG.conv2Size; c++) {
+          win2.style.top = `${r * 34}px`;
+          win2.style.left = `${c * 34}px`;
+          await new Promise(r => setTimeout(r, CONFIG.animSpeed));
+          let sum = 0;
+          for (let i = 0; i < 2; i++) {
+            for (let j = 0; j < 2; j++) {
+              sum += conv1Results[(r + i) * 3 + (c + j)] * f2Data[i * 2 + j];
+            }
+          }
+          conv2Results.push(sum);
+          conv2Cells[r * 2 + c].textContent = sum.toFixed(2);
+          conv2Cells[r * 2 + c].style.backgroundColor = `rgba(239, 68, 68, ${Math.min(sum / 3, 1)})`;
+        }
+      }
+
+      win2.classList.add('hidden');
+      f2Cont.classList.remove('active-kernel');
+
+      const mpCells = document.getElementById('maxpool-container').children;
+      const col1Max = Math.max(conv2Results[0], conv2Results[2]);
+      const col2Max = Math.max(conv2Results[1], conv2Results[3]);
+
+      await new Promise(r => setTimeout(r, 400));
+      mpCells[0].textContent = col1Max.toFixed(2);
+      mpCells[0].style.backgroundColor = `rgba(239, 68, 68, ${Math.min(col1Max/3, 1)})`;
+
+      await new Promise(r => setTimeout(r, 400));
+      mpCells[1].textContent = col2Max.toFixed(2);
+      mpCells[1].style.backgroundColor = `rgba(239, 68, 68, ${Math.min(col2Max/3, 1)})`;
+
+      const resultDiv = document.getElementById('prediction-display');
+      if (col1Max > col2Max) {
+        resultDiv.textContent = '错误识别为三角形';
+        resultDiv.className = "text-xl font-bold text-red-600";
+      } else {
+        resultDiv.textContent = '正确识别为非三角形';
+        resultDiv.className = "text-xl font-bold text-green-600";
+      }
+      btnStart.disabled = false;
+    }
+
+    document.getElementById('btn-start').addEventListener('click', runInference);
+    init();
+  </script>
+</body>
+</html>

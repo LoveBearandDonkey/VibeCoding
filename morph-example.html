@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>GSAP MorphSVG 示例</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; background-color: #f0f0f0; margin: 0; }
+        h1, p { text-align: center; margin-bottom: 10px; }
+        .controls-container { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+        .slider-container { display: flex; align-items: center; gap: 10px; }
+        .main-container { display: flex; justify-content: space-around; align-items: flex-start; width: 100%; max-width: 1800px; gap: 20px; }
+        .display-box { flex: 1; padding: 20px; border: 1px solid #ccc; background-color: white; border-radius: 8px; text-align: center; }
+        .display-box h2 { margin-top: 0; }
+        svg { max-width: 100%; height: auto; }
+        .upload-container { margin-top: 30px; padding: 20px; background: #e9ecef; border-radius: 8px; width: 100%; max-width: 1800px; text-align: center; }
+        .upload-grid { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; }
+        .upload-grid input { width: 150px; }
+        button { padding: 12px 25px; font-size: 18px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 5px; transition: background-color 0.3s; }
+        button:hover:not(:disabled) { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+    </style>
+    <!-- 步骤 1: 引入 GSAP 核心库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <!-- 步骤 2: 引入您本地的 MorphSVG 插件 -->
+    <script src="./js/MorphSVGPlugin.min.js"></script>
+</head>
+<body>
+
+    <h1>GSAP MorphSVG 交互式演示</h1>
+    <p>左侧为固定示例，中间为项目内SVG自动演示，右侧为用户上传的SVG演示。请至少上传2个SVG以激活右侧动画。</p>
+
+    <div class="controls-container">
+        <button onclick="runAllMorphs()">开始变形</button>
+        <div class="slider-container">
+            <label for="duration-slider">总时长:</label>
+            <input type="range" id="duration-slider" min="1" max="8" value="3" step="0.5">
+            <span id="duration-label">3.0s</span>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="display-box">
+            <h2>固定示例</h2>
+            <svg id="svg-left" width="250" height="250" viewBox="0 0 100 100">
+                <path id="circle" d="M50,5 A45,45 0 1,1 49.9,5 Z" fill="#3498db" />
+                <path id="star" d="M50,0 L61,35 L98,35 L68,57 L79,91 L50,70 L21,91 L32,57 L2,35 L39,35 Z" style="display: none;" />
+            </svg>
+        </div>
+        <div class="display-box">
+            <h2>项目内SVG</h2>
+            <svg id="svg-middle" width="250" height="250" viewBox="0 0 100 100">
+                <path id="project-shape-display" fill="#e67e22" />
+            </svg>
+        </div>
+        <div class="display-box">
+            <h2>自定义示例</h2>
+            <svg id="svg-right" width="250" height="250" viewBox="0 0 100 100">
+                <path id="user-shape-display" fill="#2ecc71" />
+            </svg>
+        </div>
+    </div>
+
+    <div class="upload-container">
+        <h3>上传你的 SVG 文件 (最多5个)</h3>
+        <div class="upload-grid">
+            <input type="file" id="file1" accept=".svg">
+            <input type="file" id="file2" accept=".svg">
+            <input type="file" id="file3" accept=".svg">
+            <input type="file" id="file4" accept=".svg">
+            <input type="file" id="file5" accept=".svg">
+        </div>
+    </div>
+
+    <script>
+        gsap.registerPlugin(MorphSVGPlugin);
+
+        const userShapes = [];
+        let projectShapes = [];
+        const mainButton = document.querySelector("button");
+        const durationSlider = document.getElementById('duration-slider');
+        const durationLabel = document.getElementById('duration-label');
+
+        // --- Event Listeners ---
+        durationSlider.addEventListener('input', () => {
+            durationLabel.textContent = `${parseFloat(durationSlider.value).toFixed(1)}s`;
+        });
+
+        for (let i = 1; i <= 5; i++) {
+            document.getElementById(`file${i}`).addEventListener('change', (e) => handleFileSelect(e, i - 1));
+        }
+
+        // --- File & Data Loading ---
+        async function loadShapeFromFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const svgContent = e.target.result;
+                    const parser = new DOMParser();
+                    const svgDoc = parser.parseFromString(svgContent, "image/svg+xml");
+                    const svgElement = svgDoc.querySelector('svg');
+                    const pathElement = svgDoc.querySelector('path');
+                    if (pathElement && svgElement) {
+                        const pathD = pathElement.getAttribute('d');
+                        const viewBox = svgElement.getAttribute('viewBox');
+                        if (pathD && viewBox) {
+                            resolve({ path: pathD, viewBox: viewBox });
+                        } else {
+                            reject('Path or viewBox attribute missing.');
+                        }
+                    } else {
+                        reject('SVG or Path element not found.');
+                    }
+                };
+                reader.onerror = (err) => reject(err);
+                reader.readAsText(file);
+            });
+        }
+
+        async function handleFileSelect(event, index) {
+            try {
+                const shape = await loadShapeFromFile(event.target.files[0]);
+                userShapes[index] = shape;
+                console.log(`User SVG ${index + 1} loaded.`);
+                if (userShapes.filter(s => s).length === 1) {
+                    gsap.set("#user-shape-display", { attr: { d: shape.path } });
+                    gsap.set("#svg-right", { attr: { viewBox: shape.viewBox } });
+                }
+            } catch (error) {
+                alert(`Error loading user SVG ${index + 1}: ${error}`);
+            }
+        }
+
+        async function loadProjectSVGs() {
+            try {
+                const manifestResponse = await fetch('./js/manifest.json');
+                const manifest = await manifestResponse.json();
+                const svgFiles = manifest.svg_files;
+
+                const shapePromises = svgFiles.map(url => 
+                    fetch(url)
+                        .then(response => response.text())
+                        .then(content => {
+                            const file = new File([content], url.split('/').pop(), { type: 'image/svg+xml' });
+                            return loadShapeFromFile(file);
+                        })
+                );
+                
+                projectShapes = await Promise.all(shapePromises);
+
+                if (projectShapes.length > 0) {
+                    gsap.set("#project-shape-display", { attr: { d: projectShapes[0].path } });
+                    gsap.set("#svg-middle", { attr: { viewBox: projectShapes[0].viewBox } });
+                    console.log(`${projectShapes.length} project SVGs loaded successfully.`);
+                }
+            } catch (error) {
+                console.error("Failed to load project SVGs from manifest:", error);
+            }
+        }
+
+        // --- Main Animation Logic ---
+        function runAllMorphs() {
+            mainButton.disabled = true;
+
+            const masterTimeline = gsap.timeline({
+                onComplete: () => { mainButton.disabled = false; }
+            });
+
+            const tlLeft = gsap.timeline({ repeat: 1, yoyo: true, repeatDelay: 0.5 });
+            tlLeft.to("#circle", { duration: 1.5, morphSVG: "#star", ease: "elastic.out(1, 0.4)" });
+            masterTimeline.add(tlLeft, 0);
+
+            const validProjectShapes = projectShapes.filter(s => s);
+            if (validProjectShapes.length >= 2) {
+                const tlMiddle = createMorphTimeline("#project-shape-display", "#svg-middle", validProjectShapes, ['#e67e22', '#f1c40f', '#e74c3c', '#9b59b6', '#3498db']);
+                masterTimeline.add(tlMiddle, 0);
+            }
+
+            const validUserShapes = userShapes.filter(s => s);
+            if (validUserShapes.length >= 2) {
+                const tlRight = createMorphTimeline("#user-shape-display", "#svg-right", validUserShapes, ['#2ecc71', '#1abc9c', '#3498db', '#9b59b6', '#f1c40f']);
+                masterTimeline.add(tlRight, 0);
+            }
+        }
+
+        function createMorphTimeline(pathSelector, svgSelector, shapes, colors) {
+            const totalDuration = parseFloat(durationSlider.value);
+            const singleDuration = totalDuration / (shapes.length - 1);
+            const timeline = gsap.timeline();
+
+            gsap.set(pathSelector, { attr: { d: shapes[0].path }, rotation: 0, fill: colors[0] });
+            gsap.set(svgSelector, { attr: { viewBox: shapes[0].viewBox } });
+
+            for (let i = 0; i < shapes.length - 1; i++) {
+                const nextShape = shapes[i+1];
+                const nextColor = colors[(i + 1) % colors.length];
+
+                timeline.to(pathSelector, {
+                    duration: singleDuration,
+                    morphSVG: { shape: nextShape.path },
+                    rotation: "+=360",
+                    transformOrigin: "50% 50%",
+                    fill: nextColor,
+                    ease: "power4.inOut"
+                })
+                .to(svgSelector, {
+                    duration: singleDuration,
+                    attr: { viewBox: nextShape.viewBox },
+                    ease: "power4.inOut"
+                }, "<");
+            }
+            return timeline;
+        }
+
+        window.addEventListener('DOMContentLoaded', loadProjectSVGs);
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CNN Visualization Tool</title>
+<!-- Load Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Lexend -->
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1232e2',
+          },
+          fontFamily: {
+            sans: ['Lexend', 'sans-serif'],
+          },
+          borderRadius: {
+            'm3': '8px',
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="custom-animations">
+    @keyframes highlightPulse {
+      0% { outline: 3px solid rgba(18, 50, 226, 0.5); }
+      50% { outline: 3px solid rgba(18, 50, 226, 1); }
+      100% { outline: 3px solid rgba(18, 50, 226, 0.5); }
+    }
+    .active-kernel {
+      animation: highlightPulse 1.5s infinite;
+      z-index: 10;
+    }
+    .cell-transition {
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+    .sliding-window {
+      position: absolute;
+      border: 2px solid #1232e2;
+      background-color: rgba(18, 50, 226, 0.1);
+      pointer-events: none;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 20;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-900 min-h-screen">
+<!-- BEGIN: Main Layout -->
+<main class="flex h-screen overflow-hidden">
+<!-- BEGIN: Left Section - Visualization -->
+<section class="w-[75%] p-6 overflow-y-auto border-r border-slate-200 bg-white" data-purpose="convolution-visualization">
+<header class="mb-8">
+  <div class="flex justify-between items-center">
+    <h1 class="text-2xl font-bold text-slate-800">三角形图案识别模型-13参数</h1>
+    <div class="flex items-center p-1 bg-slate-200 rounded-lg" role="tablist">
+      <button class="px-4 py-1.5 text-sm font-semibold text-white bg-primary rounded-md shadow-sm" role="tab" aria-selected="true">训练</button>
+      <a href="./inference_square.html" class="px-4 py-1.5 text-sm font-semibold text-slate-600 hover:bg-white/60 rounded-md" role="tab" aria-selected="false">推理（正方形）</a>
+      <a href="./inference_small_triangle.html" class="px-4 py-1.5 text-sm font-semibold text-slate-600 hover:bg-white/60 rounded-md" role="tab" aria-selected="false">推理（小三角形）</a>
+    </div>
+  </div>
+  <p class="text-slate-500 text-sm mt-2">展示卷积计算（正向传播）和梯度更新（反向传播）的工作过程</p>
+</header>
+<div class="grid grid-cols-5 gap-8 items-start">
+<!-- Column 1: Filter -->
+<div class="flex flex-col gap-12" data-purpose="filter-column">
+<div class="space-y-4">
+<h3 class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Filter 1 (3x3)</h3>
+<div class="grid grid-cols-3 p-2 bg-slate-100 rounded-m3 border border-slate-200 gap-0.5 w-fit" id="filter1-container"></div>
+</div>
+<div class="space-y-4">
+<h3 class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Filter 2 (2x2)</h3>
+<div class="grid grid-cols-2 p-2 bg-slate-100 rounded-m3 border border-slate-200 inline-block w-fit gap-[2px]" id="filter2-container">
+<!-- JS Injected Cells -->
+</div>
+</div>
+</div>
+<!-- Column 2: Input -->
+<div class="space-y-4 relative" data-purpose="input-column">
+<h3 class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Input (5x5)</h3>
+<div class="relative inline-block p-1 bg-white border-2 border-slate-200 rounded-m3 shadow-sm">
+<div class="grid grid-cols-5 relative gap-[2px]" id="input-container">
+<!-- JS Injected Cells -->
+</div>
+<!-- Sliding Window for Conv1 -->
+<div class="sliding-window hidden" id="window-conv1" style="width: 104px; height: 104px;"></div>
+</div>
+<div class="mt-2 text-xs text-slate-400 italic">局限：训练数据每次正传都应该会变</div>
+</div>
+<!-- Column 3: Conv1 -->
+<div class="space-y-4 relative" data-purpose="conv1-column">
+<h3 class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Conv1 (3x3)</h3>
+<div class="relative inline-block p-1 bg-slate-50 border border-slate-200 rounded-m3">
+<div class="grid grid-cols-3 relative gap-[2px]" id="conv1-container">
+<!-- JS Injected Cells -->
+</div>
+<!-- Sliding Window for Conv2 -->
+<div class="sliding-window hidden" id="window-conv2" style="width: 70px; height: 70px;"></div>
+</div>
+</div>
+<!-- Column 4: Conv2 -->
+<div class="space-y-4" data-purpose="conv2-column">
+<h3 class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Conv2 (2x2)</h3>
+<div class="inline-block p-1 bg-slate-50 border border-slate-200 rounded-m3">
+<div class="grid grid-cols-2 gap-[2px]" id="conv2-container">
+<!-- JS Injected Cells -->
+</div>
+</div>
+</div>
+<!-- Column 5: MaxPool -->
+<div class="space-y-4" data-purpose="maxpool-column">
+<h3 class="text-sm font-semibold text-slate-600 uppercase tracking-wider">MaxPool (1x2)</h3>
+<div class="inline-block p-1 bg-slate-50 border border-slate-200 rounded-m3">
+<div class="grid gap-[2px] grid-cols-2" id="maxpool-container">
+<!-- JS Injected Cells -->
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- END: Left Section -->
+<!-- BEGIN: Right Section - Controls -->
+<aside class="w-[25%] p-6 flex flex-col gap-8 bg-slate-50" data-purpose="controls-panel">
+<div class="bg-white p-6 rounded-m3 shadow-sm border border-slate-200 h-48 flex flex-col items-center justify-center text-center">
+<h2 class="text-sm font-bold text-slate-400 uppercase mb-4">卷积结果</h2>
+<div class="text-xl font-bold transition-all duration-300" id="prediction-display">
+          Waiting for processing...
+        </div>
+</div>
+<div class="space-y-4">
+<button class="w-full py-4 bg-primary text-white font-semibold rounded-m3 hover:opacity-90 active:scale-[0.98] transition-all shadow-md flex items-center justify-center gap-2 disabled:bg-slate-400" id="btn-start">
+<span>卷积</span>
+<span class="text-xs font-normal opacity-80">(正向传播)</span>
+</button>
+<button class="w-full py-4 border-2 border-primary text-primary font-semibold rounded-m3 hover:bg-primary/5 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none" id="btn-update" disabled>
+<span>更新梯度</span>
+<span class="text-xs font-normal opacity-80">(反向传播)</span>
+</button>
+
+<button class="w-full py-4 border-2 border-primary text-primary font-semibold rounded-m3" id="clearLocalStorageBtn" style="margin: 0px,16px; background: #dc3545; color: white; border: none; cursor: pointer;">
+  <span>重启训练</span>
+<span class="text-xs font-normal opacity-80">(清除缓存)</span>
+</button>
+
+<script>
+// 获取按钮元素
+const clearBtn = document.getElementById('clearLocalStorageBtn');
+
+// 绑定点击事件：清空localStorage + 刷新网页
+clearBtn.addEventListener('click', function() {
+  // 1. 核心逻辑：清空所有 localStorage
+  localStorage.clear();
+  
+  // 3. 关键新增：自动刷新当前网页
+  window.location.reload(); // 这行是刷新网页的核心代码
+  
+  // 可选：控制台打印（方便调试）
+  console.log('localStorage 清空完成，页面已刷新');
+});
+</script>
+
+<div class="mt-4 p-4 bg-white rounded-m3 border border-slate-200 shadow-sm">
+<div class="flex justify-between items-center mb-4">
+<span class="text-xs font-bold text-slate-400 uppercase">Step</span>
+<span class="text-lg font-bold text-primary" id="step-counter"></span>
+</div>
+<div class="space-y-2">
+<span class="text-xs font-bold text-slate-400 uppercase">准确率趋势（模拟）</span>
+<div class="h-24 w-full bg-slate-50 rounded border border-slate-100 relative overflow-hidden">
+<svg class="w-full h-full" id="accuracy-chart" preserveaspectratio="none" viewbox="0 0 100 40">
+<path d="" fill="none" id="chart-path" stroke="#1232e2" stroke-width="1.5"></path>
+</svg>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-auto bg-slate-200/50 p-4 rounded-m3 text-xs text-slate-500 leading-relaxed">
+<strong>信息</strong><br/>
+        卷积核: 2 个<br/>
+        权重参数: 9+4=13 个<br/>
+        学习率 * 梯度: 0.05
+      </div>
+</aside>
+<!-- END: Right Section -->
+</main>
+<!-- END: Main Layout -->
+<script data-purpose="cnn-logic">    // Initialization and Global State
+    const CONFIG = {
+      primaryColor: '#1232e2',
+      filter1Size: 3, 
+      filter2Size: 2,
+      inputSize: 5,
+      conv1Size: 3, 
+      conv2Size: 2, 
+      meanVal: 0.272,
+      animSpeed: 400,
+      learningRate: 2.0
+    };
+
+    let f1Data = [];
+    let f2Data = [];
+    let inputData = [];
+    let conv1Results = [];
+    let stepCount = -1;
+    let accuracyHistory = [];
+
+    function createGridCells(containerId, size, rows, cols, initialVal = 0) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      const data = [];
+      for (let i = 0; i < rows * cols; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'w-8 h-8 flex items-center justify-center text-[10px] border border-slate-300 cell-transition rounded-sm';
+        
+        let value;
+        if (Array.isArray(initialVal)) {
+            value = initialVal[i] || '';
+        } else if (typeof initialVal === 'function') {
+            value = initialVal();
+        } else {
+            value = initialVal;
+        }
+        
+        cell.textContent = value ? parseFloat(value).toFixed(2) : '';
+        container.appendChild(cell);
+        data.push(value ? parseFloat(value) : 0);
+      }
+      return data;
+    }
+
+    function saveState() {
+        const state = {
+            f1Data: f1Data,
+            f2Data: f2Data,
+            conv1Data: Array.from(document.getElementById('conv1-container').children).map(c => c.textContent),
+            conv2Data: Array.from(document.getElementById('conv2-container').children).map(c => c.textContent),
+            maxpoolData: Array.from(document.getElementById('maxpool-container').children).map(c => c.textContent),
+            stepCount: stepCount,
+            accuracyHistory: accuracyHistory,
+            predictionText: document.getElementById('prediction-display').textContent,
+            predictionClass: document.getElementById('prediction-display').className,
+            btnStartDisabled: document.getElementById('btn-start').disabled,
+            btnUpdateDisabled: document.getElementById('btn-update').disabled,
+        };
+        localStorage.setItem('cnn_training_state', JSON.stringify(state));
+    }
+
+    function init() {
+        const savedStateJSON = localStorage.getItem('cnn_training_state');
+
+        // Always draw the static input pattern first
+        const inputGrid = document.getElementById('input-container');
+        inputGrid.innerHTML = '';
+        inputData = [];
+        const trianglePattern = [
+            0.00, 0.00, 0.00, 0.00, 0.00,
+            0.00, 0.00, 0.85, 0.00, 0.00,
+            0.00, 0.70, 1.00, 0.70, 0.00,
+            0.60, 1.00, 1.00, 1.00, 0.60,
+            0.00, 0.00, 0.00, 0.00, 0.00
+        ];
+        trianglePattern.forEach(val => {
+            const cell = document.createElement('div');
+            cell.className = 'w-8 h-8 flex items-center justify-center text-[10px] border border-slate-200 cell-transition';
+            cell.style.backgroundColor = `rgba(239, 68, 68, ${val})`;
+            cell.textContent = val.toFixed(2);
+            inputGrid.appendChild(cell);
+            inputData.push(val);
+        });
+
+        if (savedStateJSON) {
+            const state = JSON.parse(savedStateJSON);
+            
+            // Restore data from state
+            f1Data = createGridCells('filter1-container', 3, 3, 3, state.f1Data);
+            f2Data = createGridCells('filter2-container', 2, 2, 2, state.f2Data);
+            createGridCells('conv1-container', 3, 3, 3, state.conv1Data);
+            createGridCells('conv2-container', 2, 2, 2, state.conv2Data);
+            createGridCells('maxpool-container', 2, 1, 2, state.maxpoolData);
+            
+            // Restore global variables
+            stepCount = state.stepCount;
+            accuracyHistory = state.accuracyHistory;
+            conv1Results = state.conv1Data.map(v => parseFloat(v) || 0);
+
+            // Restore UI elements
+            document.getElementById('step-counter').textContent = stepCount >= 0 ? stepCount : '';
+            const predDisplay = document.getElementById('prediction-display');
+            predDisplay.textContent = state.predictionText;
+            predDisplay.className = state.predictionClass;
+            
+            drawChart();
+
+            document.getElementById('btn-start').disabled = state.btnStartDisabled;
+            document.getElementById('btn-update').disabled = state.btnUpdateDisabled;
+
+        } else {
+            // First time initialization
+            f1Data = createGridCells('filter1-container', 3, 3, 3, () => (Math.random() * 0.4 + (CONFIG.meanVal - 0.2)).toFixed(2));
+            f2Data = createGridCells('filter2-container', 2, 2, 2, () => (Math.random() * 0.4 + (CONFIG.meanVal - 0.2)).toFixed(2));
+            createGridCells('conv1-container', 3, 3, 3, '');
+            createGridCells('conv2-container', 2, 2, 2, '');
+            createGridCells('maxpool-container', 2, 1, 2, '');
+            stepCount = -1;
+            accuracyHistory = [];
+            conv1Results = [];
+            document.getElementById('step-counter').textContent = '';
+            saveState(); // Save the initial clean state
+        }
+    }
+
+    function drawChart() {
+      const svg = document.getElementById('accuracy-chart');
+      const path = document.getElementById('chart-path');
+      // Clear previous points and labels
+      const elements = svg.querySelectorAll('circle, text');
+      elements.forEach(el => el.remove());
+
+      if (accuracyHistory.length < 1) return;
+      
+      const maxPoints = 8;
+      const displayData = accuracyHistory.slice(-maxPoints);
+      const width = 100;
+      const height = 40;
+      const padding = 5; // Reduced vertical padding for more space
+      
+      // --- DYNAMIC Y-AXIS LOGIC ---
+      let minVal = Math.min(...displayData);
+      let maxVal = Math.max(...displayData);
+
+      if (minVal === maxVal) {
+        minVal -= 0.1;
+        maxVal += 0.1;
+      }
+
+      const range = maxVal - minVal;
+      const paddedMin = minVal - range * 0.1;
+      const paddedMax = maxVal + range * 0.1;
+      const displayRange = paddedMax - paddedMin;
+      
+      const normalize = (v) => {
+        if (displayRange === 0) return height / 2;
+        const scaledValue = (v - paddedMin) / displayRange;
+        return height - (padding + scaledValue * (height - 2 * padding));
+      };
+      // --- END DYNAMIC Y-AXIS LOGIC ---
+      
+      let d = '';
+      displayData.forEach((val, i) => {
+        const x = displayData.length === 1 ? width/2 : (i / (displayData.length - 1)) * (width - 20) + 10;
+        const y = normalize(val);
+        
+        if (i === 0) d = `M ${x} ${y}`; else d += ` L ${x} ${y}`;
+
+        // Add Point
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', x);
+        circle.setAttribute('cy', y);
+        circle.setAttribute('r', '1.5');
+        circle.setAttribute('fill', CONFIG.primaryColor);
+        svg.appendChild(circle);
+
+        // Add Text Label
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', x);
+        text.setAttribute('y', y - 3);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('font-size', '4px');
+        text.setAttribute('fill', '#64748b');
+        text.textContent = val.toFixed(2);
+        svg.appendChild(text);
+      });
+      path.setAttribute('d', d);
+    }
+
+    async function runConvolution() {
+      const btnStart = document.getElementById('btn-start');
+      const btnUpdate = document.getElementById('btn-update');
+      btnStart.disabled = true;
+      btnUpdate.disabled = true;
+
+      stepCount++;
+      document.getElementById('step-counter').textContent = stepCount;
+      document.getElementById('prediction-display').textContent = "Processing...";
+
+      const f1Cont = document.getElementById('filter1-container');
+      f1Cont.classList.add('active-kernel');
+      const win1 = document.getElementById('window-conv1');
+      const conv1Cells = document.getElementById('conv1-container').children;
+      win1.classList.remove('hidden');
+
+      conv1Results = [];
+      for (let r = 0; r < CONFIG.conv1Size; r++) {
+        for (let c = 0; c < CONFIG.conv1Size; c++) {
+          win1.style.top = `${r * 34}px`;
+          win1.style.left = `${c * 34}px`;
+          await new Promise(r => setTimeout(r, CONFIG.animSpeed));
+          let sum = 0;
+          for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+              sum += inputData[(r + i) * 5 + (c + j)] * f1Data[i * 3 + j];
+            }
+          }
+          conv1Results.push(sum);
+          conv1Cells[r * 3 + c].textContent = sum.toFixed(2);
+          conv1Cells[r * 3 + c].style.backgroundColor = `rgba(239, 68, 68, ${Math.min(sum / 3, 1)})`;
+        }
+      }
+
+      win1.classList.add('hidden');
+      f1Cont.classList.remove('active-kernel');
+      const f2Cont = document.getElementById('filter2-container');
+      f2Cont.classList.add('active-kernel');
+      const win2 = document.getElementById('window-conv2');
+      const conv2Cells = document.getElementById('conv2-container').children;
+      win2.classList.remove('hidden');
+
+      let conv2Results = [];
+      for (let r = 0; r < CONFIG.conv2Size; r++) {
+        for (let c = 0; c < CONFIG.conv2Size; c++) {
+          win2.style.top = `${r * 34}px`;
+          win2.style.left = `${c * 34}px`;
+          await new Promise(r => setTimeout(r, CONFIG.animSpeed));
+          let sum = 0;
+          for (let i = 0; i < 2; i++) {
+            for (let j = 0; j < 2; j++) {
+              sum += conv1Results[(r + i) * 3 + (c + j)] * f2Data[i * 2 + j];
+            }
+          }
+          conv2Results.push(sum);
+          conv2Cells[r * 2 + c].textContent = sum.toFixed(2);
+          conv2Cells[r * 2 + c].style.backgroundColor = `rgba(239, 68, 68, ${Math.min(sum / 3, 1)})`;
+        }
+      }
+
+      win2.classList.add('hidden');
+      f2Cont.classList.remove('active-kernel');
+
+      const mpCells = document.getElementById('maxpool-container').children;
+      const col1Max = Math.max(conv2Results[0], conv2Results[2]);
+      const col2Max = Math.max(conv2Results[1], conv2Results[3]);
+      
+      await new Promise(r => setTimeout(r, 400));
+      mpCells[0].textContent = col1Max.toFixed(2);
+      mpCells[0].style.backgroundColor = `rgba(239, 68, 68, ${Math.min(col1Max/3, 1)})`;
+      
+      await new Promise(r => setTimeout(r, 400));
+      mpCells[1].textContent = col2Max.toFixed(2);
+      mpCells[1].style.backgroundColor = `rgba(239, 68, 68, ${Math.min(col2Max/3, 1)})`;
+
+      const accuracy = col1Max - col2Max;
+      accuracyHistory.push(accuracy);
+      drawChart();
+
+      const resultDiv = document.getElementById('prediction-display');
+      if (col1Max > col2Max) {
+        resultDiv.textContent = '正确预测为三角形';
+        resultDiv.className = "text-xl font-bold text-green-600";
+      } else {
+        resultDiv.textContent = '错误预测为非三角形';
+        resultDiv.className = "text-xl font-bold text-red-600";
+      }
+      saveState();
+      btnUpdate.disabled = false;
+    }
+
+    async function newUpdateGradients() {
+      const btnStart = document.getElementById('btn-start');
+      const btnUpdate = document.getElementById('btn-update');
+      btnStart.disabled = true;
+      btnUpdate.disabled = true;
+      btnUpdate.querySelector('span:first-child').textContent = '更新梯度中…';
+      const highlightColor = '#bbf7d0';
+
+      // --- Step 0: Capture original state ---
+      const conv2Cells = document.getElementById('conv2-container').children;
+      const conv2ValsOld = Array.from(conv2Cells).map(cell => parseFloat(cell.textContent) || 0);
+      const mpCells = document.getElementById('maxpool-container').children;
+      const mpVal1Old = parseFloat(mpCells[0].textContent) || 0;
+      const mpVal2Old = parseFloat(mpCells[1].textContent) || 0;
+
+      // --- Step 1: Manually introduce a LARGER error into MaxPool layer for visualization ---
+      const errorSignal = 0.05;
+      const mpVal1New = mpVal1Old + errorSignal;
+      const mpVal2New = mpVal2Old - errorSignal;
+      mpCells[0].textContent = mpVal1New.toFixed(2);
+      mpCells[1].textContent = mpVal2New.toFixed(2);
+      mpCells[0].style.backgroundColor = highlightColor;
+      mpCells[1].style.backgroundColor = highlightColor;
+
+      // --- Step 2: Propagate error back from MaxPool to Conv2 ---
+      await new Promise(r => setTimeout(r, 500));
+      const d_mp = [mpVal1New - mpVal1Old, mpVal2New - mpVal2Old];
+      let d_conv2 = [0, 0, 0, 0];
+      if (conv2ValsOld[0] >= conv2ValsOld[2]) d_conv2[0] = d_mp[0]; else d_conv2[2] = d_mp[0];
+      if (conv2ValsOld[1] >= conv2ValsOld[3]) d_conv2[1] = d_mp[1]; else d_conv2[3] = d_mp[1];
+      
+      for(let i=0; i<4; i++) {
+          conv2Cells[i].textContent = (conv2ValsOld[i] + d_conv2[i]).toFixed(2);
+          if(d_conv2[i] !== 0) conv2Cells[i].style.backgroundColor = highlightColor;
+      }
+
+      // --- Step 3: Calculate gradients for Filter2 and Conv1 ---
+      await new Promise(r => setTimeout(r, 2000));
+      const d_conv2_matrix = getMatrixAs2D(d_conv2, 2, 2);
+
+      // Gradient for filter2 weights: dW = conv(X, dY)
+      const conv1_matrix = getMatrixAs2D(conv1Results, 3, 3);
+      const d_filter2_matrix = convolve2D(conv1_matrix, d_conv2_matrix);
+      
+      // Gradient for conv1 outputs (error to propagate): dX = full_conv(dY, rot180(W))
+      const f2_matrix = getMatrixAs2D(f2Data, 2, 2);
+      const f2_rotated = rotate180(f2_matrix);
+      const d_conv1_matrix = fullConvolve2D(d_conv2_matrix, f2_rotated);
+
+      // Update filter2 based on its calculated gradient
+      const f2Cells = document.getElementById('filter2-container').children;
+      for(let i=0; i<2; i++) {
+          for(let j=0; j<2; j++) {
+              f2Data[i*2+j] += CONFIG.learningRate * d_filter2_matrix[i][j];
+              f2Cells[i*2+j].textContent = f2Data[i*2+j].toFixed(2);
+              f2Cells[i*2+j].style.backgroundColor = highlightColor;
+          }
+      }
+
+      // Update conv1 display to show the back-propagated error applied
+      const conv1Cells = document.getElementById('conv1-container').children;
+      for(let i=0; i<3; i++) {
+          for(let j=0; j<3; j++) {
+              const oldVal = conv1Results[i*3+j];
+              const newVal = oldVal - CONFIG.learningRate * d_conv1_matrix[i][j];
+              conv1Cells[i*3+j].textContent = newVal.toFixed(2);
+              conv1Cells[i*3+j].style.backgroundColor = highlightColor;
+          }
+      }
+
+      // --- Step 4: Use conv1's gradient to update Filter1 ---
+      await new Promise(r => setTimeout(r, 2000));
+      const input_matrix = getMatrixAs2D(inputData, 5, 5);
+      const d_filter1_matrix = convolve2D(input_matrix, d_conv1_matrix);
+
+      const f1Cells = document.getElementById('filter1-container').children;
+      for(let i=0; i<3; i++) {
+          for(let j=0; j<3; j++) {
+              f1Data[i*3+j] += CONFIG.learningRate * d_filter1_matrix[i][j];
+              f1Cells[i*3+j].textContent = f1Data[i*3+j].toFixed(2);
+              f1Cells[i*3+j].style.backgroundColor = highlightColor;
+          }
+      }
+
+      // --- Step 5: Clear highlights and results ---
+      await new Promise(r => setTimeout(r, 2000));
+
+      // Save the updated filters to localStorage
+      localStorage.setItem('cnn_f1Data', JSON.stringify(f1Data));
+      localStorage.setItem('cnn_f2Data', JSON.stringify(f2Data));
+      ['conv1-container', 'conv2-container', 'maxpool-container', 'filter1-container', 'filter2-container'].forEach(id => {
+        const container = document.getElementById(id);
+        Array.from(container.children).forEach(cell => {
+            if(id.includes('conv') || id.includes('maxpool')) cell.textContent = '';
+            cell.style.backgroundColor = '';
+        });
+      });
+      
+      btnUpdate.querySelector('span:first-child').textContent = '更新梯度';
+      btnUpdate.querySelector('span:first-child').textContent = '更新梯度';
+      btnStart.disabled = false;
+    }
+
+    document.getElementById('btn-start').addEventListener('click', runConvolution);
+    document.getElementById('btn-update').addEventListener('click', newUpdateGradients);
+
+    // --- Backpropagation Helper Functions ---
+    function getMatrixAs2D(data, rows, cols) {
+        const matrix = [];
+        for (let i = 0; i < rows; i++) {
+            matrix.push(data.slice(i * cols, (i + 1) * cols));
+        }
+        return matrix;
+    }
+
+    function rotate180(matrix) {
+        return matrix.map(row => row.slice().reverse()).reverse();
+    }
+
+    function convolve2D(input, kernel) {
+        const inRows = input.length;
+        const inCols = input[0].length;
+        const kernelRows = kernel.length;
+        const kernelCols = kernel[0].length;
+        const outRows = inRows - kernelRows + 1;
+        const outCols = inCols - kernelCols + 1;
+        const output = Array(outRows).fill(0).map(() => Array(outCols).fill(0));
+
+        for (let r = 0; r < outRows; r++) {
+            for (let c = 0; c < outCols; c++) {
+                let sum = 0;
+                for (let i = 0; i < kernelRows; i++) {
+                    for (let j = 0; j < kernelCols; j++) {
+                        sum += input[r + i][c + j] * kernel[i][j];
+                    }
+                }
+                output[r][c] = sum;
+            }
+        }
+        return output;
+    }
+
+    function fullConvolve2D(input, kernel) {
+        const inRows = input.length;
+        const inCols = input[0].length;
+        const kernelRows = kernel.length;
+        const kernelCols = kernel[0].length;
+        const outRows = inRows + kernelRows - 1;
+        const outCols = inCols + kernelCols - 1;
+        const padRows = kernelRows - 1;
+        const padCols = kernelCols - 1;
+
+        const paddedInput = Array(inRows + 2 * padRows).fill(0).map(() => Array(inCols + 2 * padCols).fill(0));
+        for (let i = 0; i < inRows; i++) {
+            for (let j = 0; j < inCols; j++) {
+                paddedInput[i + padRows][j + padCols] = input[i][j];
+            }
+        }
+        return convolve2D(paddedInput, kernel);
+    }
+
+    init();</script>
+</body></html>
