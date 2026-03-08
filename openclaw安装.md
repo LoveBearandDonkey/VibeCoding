@@ -1,99 +1,50 @@
 # OpenClaw 安装指南
 
-## 什么是 OpenClaw？
+## 安装openclaw
 
-OpenClaw 是一个跨平台的游戏引擎，用于开发类似 Commander Keen 的 2D 平台游戏。它是 Claw 游戏引擎的开源实现。
-
-## 安装方法
-
-### 方法一：从源码编译
+### Windows 系统搜索 cmd 打开命令行工具
 
 #### 1. 安装依赖
 
-**Windows:**
+自行安装(或让trae帮忙安装) node.js、Git
+
+在命令行工具中，检查是否安装完成，可输入以下命令看下是否有版本号回复
 ```bash
-# 安装 Visual Studio 2019 或更高版本
-# 安装 CMake 3.10+
-# 安装 Git
+node -v
 ```
 
-**Linux:**
 ```bash
-sudo apt-get update
-sudo apt-get install build-essential cmake git libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
+git -v
 ```
-
-**macOS:**
-```bash
-# 安装 Xcode 命令行工具
-xcode-select --install
-
-# 安装 Homebrew
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# 安装依赖
-brew install cmake git sdl2 sdl2_image sdl2_mixer
-```
-
-#### 2. 克隆源码
+上一步完成后，安装openclaw cli，需要等几分钟
 
 ```bash
-git clone https://github.com/OpenClaw/OpenClaw.git
-cd OpenClaw
+npm install -g openclaw
 ```
 
-#### 3. 编译
+#### 2. 开始安装openclaw
 
-**Windows:**
 ```bash
-mkdir build
-cd build
-cmake ..
-# 打开生成的 .sln 文件并编译
+openclaw onboard
 ```
+进入回合式安装，通过方向键和enter选择选项：  
+1、I understand xxxx：选yes  
+2、onboarding mode：选quickstart   
+3、model provider：首先登录心仪的平台，确保能或有充值，或有赠送额度，就申请api key。不然申请api也无法用，后续安装完不好改供应商。比如这里选kimi.cn，控制台链接：https://platform.moonshot.cn/console/account
+（选了后后续应该无法修改的所以要慎重）（问一下openclaw怎么安装技能用了2.2毛）    
+4、选择kimi后，会提示输入api key，输入后回车即可。  
+5、其他什么channel、skill等都选择skip   
+6、search provide：选kimi  
+7、最后安装完（可能会自动）打开打印内容中127那个网址  
+8、【重要】：如果127这个提示打不开，是因为gateway无法自动运行，需要手动去电脑找到openclaw的安装目录，手动点开gateway命令脚本文件，刷新127网页即可  
 
-**Linux/macOS:**
-```bash
-mkdir build
-cd build
-cmake ..
-make -j4
-```
+#### 4. 其他
+安装文档：https://docs.openclaw.ai/zh-CN/install  
+卸载文档：https://docs.openclaw.ai/zh-CN/install/uninstall
 
-### 方法二：下载预编译版本
 
-1. 访问 [OpenClaw GitHub 发布页](https://github.com/OpenClaw/OpenClaw/releases)
-2. 下载对应平台的预编译包
-3. 解压并运行
-
-## 配置游戏数据
-
-1. 你需要获取 Claw 游戏的原始数据文件
-2. 将数据文件复制到 OpenClaw 的 `data` 目录
-3. 运行 OpenClaw 即可开始游戏
-
-## 常见问题
-
-### 找不到游戏数据
-- 确保你已正确放置 Claw 游戏的数据文件到 `data` 目录
-
-### 编译错误
-- 检查是否安装了所有依赖
-- 确保使用的是兼容的编译器版本
-
-### 运行时错误
-- 检查 SDL2 相关库是否正确安装
-- 确认游戏数据文件完整
-
-## 资源链接
-
-- [OpenClaw GitHub 仓库](https://github.com/OpenClaw/OpenClaw)
-- [OpenClaw 官方网站](https://openclaw.github.io/)
-- [SDL2 官方网站](https://www.libsdl.org/)
-
-## 系统要求
-
-- **Windows:** Windows 7 或更高版本
-- **Linux:** 支持 SDL2 的 Linux 发行版
-- **macOS:** macOS 10.10 或更高版本
-- **硬件:** 1 GHz CPU, 512 MB RAM, 支持 OpenGL 2.0 的显卡
+## 安装技能
+1、官方技能合集：https://clawhub.ai/  
+2、目标技能：https://clawhub.ai/steipete/github  
+3、手动下载安装包，解压到C:自己电脑目录\.openclaw\workspace\skills\github\  
+4、问openclaw：我现在安装了哪些skill
