@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevUI 图标获取器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .search-box {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .result-box {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: none;
+        }
+        .result-box.show {
+            display: block;
+        }
+        .icon-preview {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .icon-preview svg {
+            width: 80px;
+            height: 80px;
+            color: #333;
+        }
+        .code-block {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 15px;
+            position: relative;
+            overflow-x: auto;
+        }
+        .code-block pre {
+            margin: 0;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            color: #333;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .copy-btn:hover {
+            background: #5a6fd6;
+        }
+        .error-message {
+            color: #e74c3c;
+            text-align: center;
+            padding: 20px;
+            background: #fee;
+            border-radius: 8px;
+        }
+        .loading {
+            text-align: center;
+            color: #667eea;
+            padding: 20px;
+        }
+        .icon-list {
+            margin-top: 20px;
+        }
+        .icon-list h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 12px;
+        }
+        .icon-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        .icon-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+        .icon-item svg {
+            width: 32px;
+            height: 32px;
+            margin-bottom: 6px;
+            color: #333;
+        }
+        .icon-item span {
+            display: block;
+            font-size: 11px;
+            color: #666;
+            word-break: break-all;
+            line-height: 1.3;
+        }
+        .tips {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 0 8px 8px 0;
+        }
+        .tips h4 {
+            color: #1976d2;
+            margin-bottom: 8px;
+        }
+        .tips ul {
+            margin-left: 20px;
+            color: #555;
+        }
+        .tips li {
+            margin-bottom: 5px;
+        }
+        .cdn-selector {
+            margin-bottom: 15px;
+        }
+        .cdn-selector label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        .cdn-selector select {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+        }
+        .cdn-selector select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .icon-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f0f7ff;
+            border-radius: 8px;
+        }
+        .icon-info h4 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        .icon-info p {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .icon-info code {
+            background: #e3f2fd;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 DevUI 图标获取器</h1>
+        
+        <div class="search-box">
+            <div class="cdn-selector">
+                <label for="cdnSelect">选择 CDN 源：</label>
+                <select id="cdnSelect">
+                    <option value="jsdelivr">jsDelivr (推荐)</option>
+                    <option value="unpkg">UNPKG</option>
+                    <option value="npmmirror">npmmirror (国内)</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <input type="text" id="iconName" placeholder="输入图标名称，例如: accelerations, add, search..." />
+                <button onclick="fetchIcon()">获取图标</button>
+            </div>
+            <div class="tips">
+                <h4>💡 使用提示</h4>
+                <ul>
+                    <li>输入图标名称（如：accelerations, add, search, delete 等）</li>
+                    <li>点击"获取图标"按钮获取 SVG 代码</li>
+                    <li>可以复制 SVG 代码用于你的项目</li>
+                    <li>如果某个 CDN 无法访问，请尝试切换其他 CDN 源</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="result" class="result-box">
+            <div id="loading" class="loading" style="display: none;">
+                <p>正在获取图标...</p>
+            </div>
+            <div id="error" class="error-message" style="display: none;"></div>
+            <div id="success" style="display: none;">
+                <div class="icon-preview" id="iconPreview"></div>
+                <div class="icon-info">
+                    <h4>📋 图标信息</h4>
+                    <p>名称: <code id="iconNameDisplay"></code></p>
+                    <p>CDN 路径: <code id="iconPathDisplay"></code></p>
+                </div>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode()">复制代码</button>
+                    <pre id="codeContent"></pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="result-box show">
+            <div class="icon-list">
+                <h3>📚 常用图标示例（点击快速获取）</h3>
+                <div class="icon-grid" id="commonIcons"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CDN 配置
+        const CDN_CONFIG = {
+            jsdelivr: 'https://cdn.jsdelivr.net/npm/@devui-design/icons@latest/imgs/',
+            unpkg: 'https://unpkg.com/@devui-design/icons@latest/imgs/',
+            npmmirror: 'https://registry.npmmirror.com/@devui-design/icons/latest/files/imgs/'
+        };
+
+        // 常用图标列表
+        const commonIcons = [
+            'accelerations', 'add', 'add-aim', 'add-member', 'add-square-o',
+            'add-square', 'add-task', 'address-book', 'agree-o', 'agree',
+            'aim', 'alarm', 'alert', 'align-bottom', 'align-center',
+            'align-left', 'align-right', 'align-top', 'align-vertically',
+            'analysis', 'angry-o', 'app-add', 'app-o', 'app-switch',
+            'app', 'apple', 'application', 'archive', 'area-chart',
+            'arrow-down', 'arrow-left', 'arrow-right', 'arrow-up',
+            'arrows-alt', 'arrows', 'article', 'ashbin', 'at',
+            'back-to-top', 'backward', 'bar-chart', 'base', 'bell',
+            'big-ashbin', 'big-chart', 'big-check-o', 'big-check',
+            'big-close', 'big-cloud', 'big-code', 'big-meh-o', 'big-meh',
+            'big-smile-o', 'big-smile', 'bill', 'block', 'bold',
+            'book', 'bookmark', 'box', 'bug', 'building',
+            'bulb', 'button', 'calculator', 'calendar', 'camera',
+            'cancel-release', 'card', 'caret-down', 'caret-left',
+            'caret-right', 'caret-up', 'cart', 'catalog', 'chain',
+            'chart-relation', 'chart', 'chat', 'check-bold', 'check-item',
+            'check-outlined', 'check', 'checkbox', 'chevron-down',
+            'chevron-left', 'chevron-right', 'chevron-up', 'class',
+            'classification', 'clear-format', 'clock', 'close-bold',
+            'close', 'cloud-download', 'cloud-upload', 'cloud',
+            'code', 'collapse', 'collection', 'color', 'comment',
+            'company', 'compass', 'component', 'connect', 'console',
+            'constructions', 'contact', 'copy', 'copyright', 'course',
+            'creditcard', 'css3', 'cut', 'dashboard', 'data-analysis',
+            'data-view', 'database', 'date', 'decline', 'delete',
+            'deploy', 'detail', 'develop', 'device', 'diagram',
+            'dialog', 'dictionary', 'direction-down', 'direction-left',
+            'direction-right', 'direction-up', 'disconnect', 'discovery',
+            'dislike', 'doc-add', 'doc-delete', 'doc-detail',
+            'doc-edit', 'doc-export', 'doc-import', 'doc-paste',
+            'doc-search', 'doc', 'document', 'domain', 'done',
+            'dot', 'down-o', 'down', 'download', 'drag',
+            'dropdown', 'earth', 'edit', 'eject', 'email',
+            'enlarge', 'enter', 'envelope', 'eraser', 'error-o',
+            'error', 'escalation', 'event', 'exclamation', 'excludefield',
+            'exit-fullscreen', 'expand', 'experiment', 'export', 'expression',
+            'eye-close', 'eye', 'face-frown', 'face-meh', 'face-smile',
+            'facebook', 'fast-backward', 'fast-forward', 'favorite',
+            'file', 'filter', 'fingerprint', 'fire', 'flag',
+            'flashlight', 'flask', 'folder-add', 'folder-close',
+            'folder-open', 'folder', 'font', 'forbidden', 'fork',
+            'form', 'forward', 'fullscreen', 'function', 'funnel',
+            'gamepad', 'gift', 'github', 'gitlab', 'global',
+            'globe', 'go-end', 'go-start', 'gold', 'golf',
+            'google', 'gps', 'graphic-design', 'grid', 'group',
+            'guide', 'halo', 'hamburger', 'hand', 'harddisk',
+            'hash', 'heart', 'help', 'hide', 'highligt',
+            'history', 'home', 'hourglass', 'html5', 'icon',
+            'idcard', 'image', 'import', 'inbox', 'increase',
+            'indent', 'info-o', 'info', 'insert', 'inspect',
+            'instagram', 'intersect', 'italic', 'key', 'keyboard',
+            'language', 'laptop', 'layers', 'layout', 'left-o',
+            'left', 'like', 'line-chart', 'line-height', 'link-unlink',
+            'link', 'list', 'loading', 'location', 'lock',
+            'login', 'logout', 'mac', 'magic', 'mail',
+            'man', 'manager', 'map', 'mark-as-read', 'maximize',
+            'meh-o', 'meh', 'menu', 'merge', 'message',
+            'mic', 'micmute', 'minimize', 'minus-bold', 'minus',
+            'mobile', 'mobilecheck', 'money', 'monitor', 'moon',
+            'more', 'mouse', 'move', 'music', 'navigate',
+            'notification', 'number', 'object-group', 'object-ungroup',
+            'open-sign', 'operate', 'ops', 'order', 'orderedlist',
+            'organization', 'outdent', 'overview', 'page-add',
+            'page-search', 'pages', 'paperclip', 'partake', 'pause',
+            'pay', 'pen', 'percent', 'phone', 'picture',
+            'pie-chart', 'pin', 'play', 'plus-bold', 'plus',
+            'position', 'power', 'precaution', 'printer', 'priority',
+            'product', 'project', 'pull-request', 'pushpin', 'qrcode',
+            'question-o', 'question', 'quote', 'radar-chart',
+            'radio', 'random', 're-activate', 'read', 'redo',
+            'refresh', 'relation', 'release', 'reload', 'remember',
+            'remote-desktop', 'remove', 'repeat', 'reply', 'report',
+            'required', 'resign', 'resize', 'restart', 'restore',
+            'result', 'resume', 'retweet', 'right-o', 'right',
+            'ring-chart', 'robot', 'rocket', 'rollback', 'rotate-left',
+            'rotate-right', 'safety', 'save', 'scan', 'schedule',
+            'screenshot', 'search', 'select-all', 'send', 'serial',
+            'server', 'setting', 'share', 'shield', 'shop',
+            'shopping-bag', 'shopping-cart', 'shrink', 'shuffle',
+            'shut-down', 'sibling-nodes', 'skin', 'smile-o', 'smile',
+            'sort-ascending', 'sort-descending', 'sort', 'sound',
+            'split', 'square', 'star-o', 'star', 'step-backward',
+            'step-forward', 'stop', 'storage', 'stream', 'strikethrough',
+            'subordinate', 'subscript', 'subtract', 'succeed',
+            'success-o', 'success', 'sun', 'swap', 'sync',
+            'table', 'tag', 'tags', 'target', 'task',
+            'team', 'template', 'terminal', 'text', 'th-large',
+            'th', 'theme', 'three-dots', 'thunderbolt', 'ticket',
+            'time', 'tips', 'tool', 'toolbox', 'top-up',
+            'topic', 'trace', 'transaction', 'transfer', 'translate',
+            'trophy', 'tv', 'twitter', 'underline', 'undo',
+            'ungroup', 'unlock', 'unorderedlist', 'up-o', 'up',
+            'upload', 'usb', 'user-add', 'user-group', 'user',
+            'validation', 'video', 'voice', 'wallet', 'warning-o',
+            'warning', 'wechat', 'weibo', 'wifi', 'windows',
+            'woman', 'word', 'work', 'zoom-in', 'zoom-out'
+        ];
+
+        // 预加载的图标缓存
+        const iconCache = {};
+
+        // 初始化常用图标展示
+        async function initCommonIcons() {
+            const grid = document.getElementById('commonIcons');
+            const cdn = document.getElementById('cdnSelect').value;
+            const baseUrl = CDN_CONFIG[cdn];
+            
+            // 只加载前 24 个常用图标
+            const iconsToLoad = commonIcons.slice(0, 24);
+            
+            for (const iconName of iconsToLoad) {
+                const item = document.createElement('div');
+                item.className = 'icon-item';
+                item.onclick = () => {
+                    document.getElementById('iconName').value = iconName;
+                    fetchIcon();
+                };
+                item.innerHTML = `
+                    <div class="icon-placeholder" style="width:32px;height:32px;margin:0 auto 6px;background:#e0e0e0;border-radius:4px;"></div>
+                    <span>${iconName}</span>
+                `;
+                grid.appendChild(item);
+                
+                // 异步加载图标
+                loadIconToElement(iconName, item, baseUrl);
+            }
+        }
+
+        // 加载图标到元素
+        async function loadIconToElement(iconName, element, baseUrl) {
+            try {
+                const svgUrl = `${baseUrl}${iconName}.svg`;
+                const response = await fetch(svgUrl);
+                if (response.ok) {
+                    const svgContent = await response.text();
+                    iconCache[iconName] = svgContent;
+                    element.querySelector('.icon-placeholder').outerHTML = svgContent;
+                }
+            } catch (e) {
+                // 静默失败，保持占位符
+            }
+        }
+
+        // 获取图标
+        async function fetchIcon() {
+            const iconName = document.getElementById('iconName').value.trim().toLowerCase();
+            if (!iconName) {
+                showError('请输入图标名称');
+                return;
+            }
+
+            const resultBox = document.getElementById('result');
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const success = document.getElementById('success');
+
+            resultBox.classList.add('show');
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            success.style.display = 'none';
+
+            const cdn = document.getElementById('cdnSelect').value;
+            const baseUrl = CDN_CONFIG[cdn];
+
+            try {
+                // 先检查缓存
+                let svgContent = iconCache[iconName];
+                
+                if (!svgContent) {
+                    const svgUrl = `${baseUrl}${iconName}.svg`;
+                    const response = await fetch(svgUrl);
+                    
+                    if (!response.ok) {
+                        throw new Error(`图标 "${iconName}" 不存在或无法访问 (HTTP ${response.status})`);
+                    }
+
+                    svgContent = await response.text();
+                    iconCache[iconName] = svgContent;
+                }
+                
+                // 显示预览
+                document.getElementById('iconPreview').innerHTML = svgContent;
+                
+                // 格式化代码显示
+                const formattedCode = formatSVGCode(svgContent);
+                document.getElementById('codeContent').textContent = formattedCode;
+                
+                // 显示图标信息
+                document.getElementById('iconNameDisplay').textContent = iconName;
+                document.getElementById('iconPathDisplay').textContent = `${baseUrl}${iconName}.svg`;
+
+                loading.style.display = 'none';
+                success.style.display = 'block';
+            } catch (err) {
+                loading.style.display = 'none';
+                showError(err.message || '获取图标失败，请检查图标名称是否正确或尝试切换 CDN 源');
+            }
+        }
+
+        // 格式化 SVG 代码
+        function formatSVGCode(svg) {
+            // 简单的格式化
+            return svg
+                .replace(/></g, '>\n<')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        // 显示错误
+        function showError(message) {
+            const error = document.getElementById('error');
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+
+        // 复制代码
+        function copyCode() {
+            const code = document.getElementById('codeContent').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = '已复制!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        // 回车键触发搜索
+        document.getElementById('iconName').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                fetchIcon();
+            }
+        });
+
+        // CDN 切换时重新加载常用图标
+        document.getElementById('cdnSelect').addEventListener('change', function() {
+            document.getElementById('commonIcons').innerHTML = '';
+            initCommonIcons();
+        });
+
+        // 初始化
+        initCommonIcons();
+    </script>
+</body>
+</html>
