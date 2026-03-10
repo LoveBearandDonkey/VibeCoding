@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>研发团队效能洞察</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-light: #3b82f6;
+            --secondary: #06b6d4;
+            --accent: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-dark: #0f172a;
+            --bg-card: rgba(255, 255, 255, 0.05);
+            --bg-card-hover: rgba(255, 255, 255, 0.08);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --shadow-glass-hover: 0 12px 48px rgba(0, 0, 0, 0.5);
+            --gradient-primary: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            --gradient-secondary: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%);
+            --gradient-accent: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(30, 58, 138, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(6, 182, 212, 0.12) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.08) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .logo {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            position: relative;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--gradient-secondary);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .hero {
+            padding: 140px 0 80px;
+            text-align: center;
+            position: relative;
+        }
+
+        .hero h1 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 4rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto 40px;
+            line-height: 1.8;
+        }
+
+        .hero-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .hero-stat {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 32px 24px;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-stat::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-secondary);
+            transform: scaleX(0);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .hero-stat:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-glass-hover);
+            background: var(--bg-card-hover);
+        }
+
+        .hero-stat:hover::before {
+            transform: scaleX(1);
+        }
+
+        .hero-stat-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 12px;
+        }
+
+        .hero-stat-value {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 3.5rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .hero-stat-trend {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .hero-stat-trend.positive {
+            color: var(--success);
+        }
+
+        .hero-stat-trend.negative {
+            color: var(--danger);
+        }
+
+        .hero-stat-trend svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .metrics {
+            padding: 80px 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-header h2 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-header p {
+            color: var(--text-secondary);
+            font-size: 1.125rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+        }
+
+        .metric-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 40px 32px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-accent);
+            transform: scaleX(0);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-glass-hover);
+            background: var(--bg-card-hover);
+        }
+
+        .metric-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .metric-icon {
+            width: 64px;
+            height: 64px;
+            background: var(--gradient-secondary);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 24px rgba(6, 182, 212, 0.3);
+        }
+
+        .metric-icon svg {
+            width: 32px;
+            height: 32px;
+            color: white;
+        }
+
+        .metric-card h3 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .metric-value {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+        }
+
+        .metric-description {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 24px;
+        }
+
+        .metric-progress {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            height: 8px;
+            overflow: hidden;
+        }
+
+        .metric-progress-bar {
+            height: 100%;
+            border-radius: 12px;
+            background: var(--gradient-secondary);
+            transition: width 1s ease-out;
+        }
+
+        .metric-target {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .insights {
+            padding: 80px 0;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .insight-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 40px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .insight-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-primary);
+            transform: scaleX(0);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .insight-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-glass-hover);
+            background: var(--bg-card-hover);
+        }
+
+        .insight-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .insight-type {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 20px;
+        }
+
+        .insight-type.improvement {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .insight-type.warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .insight-card h3 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .insight-card p {
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-bottom: 24px;
+        }
+
+        .insight-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .insight-action {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .insight-action.primary {
+            background: var(--gradient-primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
+        }
+
+        .insight-action.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(30, 58, 138, 0.4);
+        }
+
+        .insight-action.secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+        }
+
+        .insight-action.secondary:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--primary-light);
+        }
+
+        .trends {
+            padding: 80px 0;
+        }
+
+        .trends-container {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 48px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .trends-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .trends-header h3 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .trends-filter {
+            display: flex;
+            gap: 12px;
+        }
+
+        .trends-filter button {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            background: transparent;
+            color: var(--text-secondary);
+            border: 2px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .trends-filter button.active {
+            background: var(--gradient-secondary);
+            color: white;
+            border-color: transparent;
+        }
+
+        .trends-filter button:hover:not(.active) {
+            background: var(--bg-card-hover);
+            border-color: var(--secondary);
+        }
+
+        .trends-chart {
+            height: 300px;
+            position: relative;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .trends-chart svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .trends-chart path {
+            fill: none;
+            stroke-width: 3;
+            stroke-linecap: round;
+        }
+
+        .trends-chart .area {
+            fill: url(#chartGradient);
+            opacity: 0.3;
+        }
+
+        .chart-legend {
+            display: flex;
+            gap: 24px;
+            margin-top: 24px;
+            justify-content: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        footer {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-color);
+            padding: 48px 0 24px;
+            margin-top: 80px;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 48px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px 48px;
+        }
+
+        .footer-brand h4 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+        }
+
+        .footer-brand p {
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .footer-links h5 {
+            font-weight: 600;
+            margin-bottom: 20px;
+            font-size: 1rem;
+        }
+
+        .footer-links ul {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 12px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 32px;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 1024px) {
+            .hero h1 {
+                font-size: 3rem;
+            }
+
+            .hero-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .metrics-grid,
+            .insights-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .footer-content {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero {
+                padding: 100px 0 60px;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1.1rem;
+            }
+
+            .hero-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-grid,
+            .insights-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr;
+            }
+
+            .trends-header {
+                flex-direction: column;
+                gap: 16px;
+                align-items: flex-start;
+            }
+
+            .trends-filter {
+                flex-wrap: wrap;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="nav-container">
+            <div class="logo">研发效能洞察</div>
+            <ul class="nav-links">
+                <li><a href="#metrics">核心指标</a></li>
+                <li><a href="#insights">洞察建议</a></li>
+                <li><a href="#trends">趋势分析</a></li>
+                <li><a href="#reports">报告</a></li>
+            </ul>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h1>数据驱动的研发团队效能提升</h1>
+            <p>通过实时数据洞察，识别瓶颈，优化流程，提升团队生产力。让每一个决策都有据可依。</p>
+            
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <div class="hero-stat-label">交付周期</div>
+                    <div class="hero-stat-value">12.5</div>
+                    <div class="hero-stat-trend positive">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 15l-6-6-6 6"/>
+                        </svg>
+                        <span>较上周 -15%</span>
+                    </div>
+                </div>
+
+                <div class="hero-stat">
+                    <div class="hero-stat-label">代码质量</div>
+                    <div class="hero-stat-value">94.2%</div>
+                    <div class="hero-stat-trend positive">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 15l-6-6-6 6"/>
+                        </svg>
+                        <span>较上周 +3.2%</span>
+                    </div>
+                </div>
+
+                <div class="hero-stat">
+                    <div class="hero-stat-label">团队效率</div>
+                    <div class="hero-stat-value">87.6%</div>
+                    <div class="hero-stat-trend positive">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 15l-6-6-6 6"/>
+                        </svg>
+                        <span>较上周 +5.8%</span>
+                    </div>
+                </div>
+
+                <div class="hero-stat">
+                    <div class="hero-stat-label">缺陷密度</div>
+                    <div class="hero-stat-value">2.3</div>
+                    <div class="hero-stat-trend negative">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 9l6 6 6-6"/>
+                        </svg>
+                        <span>较上周 +0.8</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="metrics" id="metrics">
+        <div class="container">
+            <div class="section-header">
+                <h2>核心效能指标</h2>
+                <p>全方位监控研发团队的关键指标，持续优化开发流程</p>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 12 18"/>
+                        </svg>
+                    </div>
+                    <h3>交付周期</h3>
+                    <div class="metric-value">12.5 天</div>
+                    <p class="metric-description">从代码提交到生产环境的平均时间。目标：&lt;10 天</p>
+                    <div class="metric-progress">
+                        <div class="metric-progress-bar" style="width: 78%;"></div>
+                    </div>
+                    <div class="metric-target">
+                        <span>当前: 12.5天</span>
+                        <span>目标: &lt;10天</span>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="2" y1="13" x2="22" y2="13"/>
+                        </svg>
+                    </div>
+                    <h3>代码审查率</h3>
+                    <div class="metric-value">92.3%</div>
+                    <p class="metric-description">代码经过同行评审的比例。目标：&ge;95%</p>
+                    <div class="metric-progress">
+                        <div class="metric-progress-bar" style="width: 92%;"></div>
+                    </div>
+                    <div class="metric-target">
+                        <span>当前: 92.3%</span>
+                        <span>目标: &ge;95%</span>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-10-10V5l-9 7-9 7v18a10 10 0 0 0 10 10z"/>
+                            <path d="M14.5 13.5L12 16l-2.5-2.5"/>
+                        </svg>
+                    </div>
+                    <h3>测试覆盖率</h3>
+                    <div class="metric-value">87.6%</div>
+                    <p class="metric-description">自动化测试覆盖的代码比例。目标：&ge;90%</p>
+                    <div class="metric-progress">
+                        <div class="metric-progress-bar" style="width: 87%;"></div>
+                    </div>
+                    <div class="metric-target">
+                        <span>当前: 87.6%</span>
+                        <span>目标: &ge;90%</span>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </div>
+                    <h3>团队协作</h3>
+                    <div class="metric-value">8.2</div>
+                    <p class="metric-description">平均每人每天的协作次数。目标：&ge;10 次</p>
+                    <div class="metric-progress">
+                        <div class="metric-progress-bar" style="width: 82%;"></div>
+                    </div>
+                    <div class="metric-target">
+                        <span>当前: 8.2次</span>
+                        <span>目标: &ge;10次</span>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M13 2L3 14h9l-1 8h10l-1-8z"/>
+                            <path d="M22 29l-10-10L2 29"/>
+                        </svg>
+                    </div>
+                    <h3>构建成功率</h3>
+                    <div class="metric-value">96.8%</div>
+                    <p class="metric-description">CI/CD 管道构建成功的比例。目标：&ge;98%</p>
+                    <div class="metric-progress">
+                        <div class="metric-progress-bar" style="width: 97%;"></div>
+                    </div>
+                    <div class="metric-target">
+                        <span>当前: 96.8%</span>
+                        <span>目标: &ge;98%</span>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-1.42-1.14L12 6.59V21a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6.59l-2.29-2.59a2 2 0 0 0-1.42-1.14z"/>
+                        </svg>
+                    </div>
+                    <h3>技术债务</h3>
+                    <div class="metric-value">3.2 天</div>
+                    <p class="metric-description">修复技术债务所需时间。目标：&lt;3 天</p>
+                    <div class="metric-progress">
+                        <div class="metric-progress-bar" style="width: 65%;"></div>
+                    </div>
+                    <div class="metric-target">
+                        <span>当前: 3.2天</span>
+                        <span>目标: &lt;3天</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="insights" id="insights">
+        <div class="container">
+            <div class="section-header">
+                <h2>智能洞察建议</h2>
+                <p>基于数据分析的个性化改进建议，帮助团队持续提升</p>
+            </div>
+
+            <div class="insights-grid">
+                <div class="insight-card">
+                    <span class="insight-type improvement">改进建议</span>
+                    <h3>优化代码审查流程</h3>
+                    <p>当前代码审查率为 92.3%，距离目标 95% 还有提升空间。建议引入自动化代码审查工具，设置审查 SLA，并定期进行审查质量评估。</p>
+                    <div class="insight-actions">
+                        <button class="insight-action primary">查看详情</button>
+                        <button class="insight-action secondary">稍后提醒</button>
+                    </div>
+                </div>
+
+                <div class="insight-card">
+                    <span class="insight-type warning">风险预警</span>
+                    <h3>交付周期上升趋势</h3>
+                    <p>过去两周交付周期从 10.8 天上升至 12.5 天，增长 15.7%。建议检查是否有新的流程瓶颈或资源分配问题。</p>
+                    <div class="insight-actions">
+                        <button class="insight-action primary">深入分析</button>
+                        <button class="insight-action secondary">忽略</button>
+                    </div>
+                </div>
+
+                <div class="insight-card">
+                    <span class="insight-type improvement">改进建议</span>
+                    <h3>提升测试覆盖率</h3>
+                    <p>测试覆盖率为 87.6%，建议增加核心模块的单元测试，引入集成测试自动化，并设置覆盖率门禁。</p>
+                    <div class="insight-actions">
+                        <button class="insight-action primary">查看计划</button>
+                        <button class="insight-action secondary">稍后提醒</button>
+                    </div>
+                </div>
+
+                <div class="insight-card">
+                    <span class="insight-type improvement">改进建议</span>
+                    <h3>加强团队协作</h3>
+                    <p>团队协作频率为 8.2 次/天，建议引入代码配对、技术分享会、定期团队回顾等活动，提升协作效率。</p>
+                    <div class="insight-actions">
+                        <button class="insight-action primary">查看方案</button>
+                        <button class="insight-action secondary">稍后提醒</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="trends" id="trends">
+        <div class="container">
+            <div class="section-header">
+                <h2>趋势分析</h2>
+                <p>追踪关键指标的历史变化，识别长期趋势和周期性模式</p>
+            </div>
+
+            <div class="trends-container">
+                <div class="trends-header">
+                    <h3>效能指标趋势</h3>
+                    <div class="trends-filter">
+                        <button class="active">7天</button>
+                        <button>30天</button>
+                        <button>90天</button>
+                        <button>1年</button>
+                    </div>
+                </div>
+
+                <div class="trends-chart">
+                    <svg viewBox="0 0 800 300" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:var(--secondary);stop-opacity:0.4" />
+                                <stop offset="100%" style="stop-color:var(--secondary);stop-opacity:0" />
+                            </linearGradient>
+                        </defs>
+                        <path class="area" d="M0,250 Q100,200 200,180 T400,150 T600,120 T800,100 L800,300 L0,300 Z"/>
+                        <path d="M0,250 Q100,200 200,180 T400,150 T600,120 T800,100" 
+                              stroke="var(--secondary)"/>
+                        <path d="M0,200 Q100,180 200,160 T400,130 T600,100 T800,70" 
+                              stroke="var(--primary)"/>
+                        <path d="M0,180 Q100,160 200,140 T400,110 T600,80 T800,50" 
+                              stroke="var(--accent)"/>
+                    </svg>
+                </div>
+
+                <div class="chart-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: var(--secondary);"></div>
+                        <span>交付周期</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: var(--primary);"></div>
+                        <span>代码质量</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background: var(--accent);"></div>
+                        <span>团队效率</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-brand">
+                <h4>研发效能洞察</h4>
+                <p>通过数据驱动的方式，帮助研发团队持续提升效能，实现更快的交付和更高的质量。</p>
+            </div>
+            <div class="footer-links">
+                <h5>产品</h5>
+                <ul>
+                    <li><a href="#">功能特性</a></li>
+                    <li><a href="#">集成方案</a></li>
+                    <li><a href="#">API 文档</a></li>
+                    <li><a href="#">更新日志</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h5>支持</h5>
+                <ul>
+                    <li><a href="#">帮助中心</a></li>
+                    <li><a href="#">最佳实践</a></li>
+                    <li><a href="#">联系我们</a></li>
+                    <li><a href="#">反馈建议</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 研发效能洞察. 保留所有权利.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const statValues = document.querySelectorAll('.hero-stat-value, .metric-value');
+            
+            function animateValue(element, start, end, duration) {
+                let startTimestamp = null;
+                const step = (timestamp) => {
+                    if (!startTimestamp) startTimestamp = timestamp;
+                    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                    const easeProgress = 1 - Math.pow(1 - progress, 3);
+                    const value = Math.floor(easeProgress * (end - start) + start);
+                    
+                    const text = element.textContent;
+                    if (text.includes('%')) {
+                        element.textContent = value.toFixed(1) + '%';
+                    } else if (text.includes('天')) {
+                        element.textContent = value.toFixed(1) + ' 天';
+                    } else if (text.includes('次')) {
+                        element.textContent = value.toFixed(1) + ' 次';
+                    } else {
+                        element.textContent = value.toLocaleString();
+                    }
+                    
+                    if (progress < 1) {
+                        window.requestAnimationFrame(step);
+                    }
+                };
+                window.requestAnimationFrame(step);
+            }
+
+            statValues.forEach(stat => {
+                const text = stat.textContent;
+                const match = text.match(/[\d.]+/);
+                if (match) {
+                    const value = parseFloat(match[0]);
+                    animateValue(stat, 0, value, 2000);
+                }
+            });
+
+            const progressBars = document.querySelectorAll('.metric-progress-bar');
+            progressBars.forEach(bar => {
+                const width = bar.style.width;
+                bar.style.width = '0%';
+                setTimeout(() => {
+                    bar.style.width = width;
+                }, 500);
+            });
+
+            const filterButtons = document.querySelectorAll('.trends-filter button');
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+
+            const navLinks = document.querySelectorAll('.nav-links a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    const href = this.getAttribute('href');
+                    if (href.startsWith('#')) {
+                        e.preventDefault();
+                        const target = document.querySelector(href);
+                        if (target) {
+                            target.scrollIntoView({ behavior: 'smooth' });
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

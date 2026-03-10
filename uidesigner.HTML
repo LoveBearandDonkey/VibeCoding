@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>研发团队效能洞察</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary-color: #0891b2;
+            --success-color: #059669;
+            --warning-color: #d97706;
+            --danger-color: #dc2626;
+            --background-dark: #0f172a;
+            --background-card: #1e293b;
+            --background-card-hover: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --transition-fast: 0.15s;
+            --transition-normal: 0.3s;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--background-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        header {
+            background-color: var(--background-dark);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 32px;
+        }
+
+        nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color var(--transition-fast);
+        }
+
+        nav a:hover {
+            color: var(--text-primary);
+        }
+
+        .main-content {
+            padding: 48px 0;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-bottom: 64px;
+        }
+
+        .metric-card {
+            background-color: var(--background-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            transition: all var(--transition-normal);
+        }
+
+        .metric-card:hover {
+            background-color: var(--background-card-hover);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .metric-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .metric-change {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .metric-change.positive {
+            color: var(--success-color);
+        }
+
+        .metric-change.negative {
+            color: var(--danger-color);
+        }
+
+        .section {
+            margin-bottom: 64px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .section-subtitle {
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        .time-filter {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-btn {
+            background-color: var(--background-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .filter-btn:hover {
+            background-color: var(--background-card-hover);
+            color: var(--text-primary);
+        }
+
+        .filter-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        .dashboard-card {
+            background-color: var(--background-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 32px;
+            transition: all var(--transition-normal);
+        }
+
+        .dashboard-card:hover {
+            background-color: var(--background-card-hover);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card-value {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        .card-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 24px;
+        }
+
+        .progress-list {
+            list-style: none;
+        }
+
+        .progress-item {
+            margin-bottom: 16px;
+        }
+
+        .progress-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.875rem;
+        }
+
+        .progress-label {
+            color: var(--text-secondary);
+        }
+
+        .progress-value {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: var(--background-dark);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            border-radius: 4px;
+            transition: width 1s ease-out;
+        }
+
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .insight-card {
+            background-color: var(--background-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 32px;
+            transition: all var(--transition-normal);
+        }
+
+        .insight-card:hover {
+            background-color: var(--background-card-hover);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .insight-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 16px;
+        }
+
+        .insight-badge.suggestion {
+            background-color: rgba(37, 99, 235, 0.2);
+            color: var(--primary-color);
+        }
+
+        .insight-badge.warning {
+            background-color: rgba(217, 119, 6, 0.2);
+            color: var(--warning-color);
+        }
+
+        .insight-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .insight-description {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 24px;
+        }
+
+        .insight-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--background-card-hover);
+            border-color: var(--text-secondary);
+        }
+
+        .trends-section {
+            background-color: var(--background-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 32px;
+        }
+
+        .trends-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .trends-legend {
+            display: flex;
+            gap: 24px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .chart-container {
+            height: 300px;
+            position: relative;
+            background-color: var(--background-dark);
+            border-radius: 8px;
+            padding: 24px;
+        }
+
+        .chart-container svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        footer {
+            background-color: var(--background-dark);
+            border-top: 1px solid var(--border-color);
+            padding: 48px 0 24px;
+            margin-top: 64px;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 48px;
+            margin-bottom: 32px;
+        }
+
+        .footer-brand h4 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 16px;
+        }
+
+        .footer-brand p {
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .footer-links h5 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .footer-links ul {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 12px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color var(--transition-fast);
+        }
+
+        .footer-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        @media (max-width: 1200px) {
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .dashboard-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .insights-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-content {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            nav ul {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+
+            .time-filter {
+                flex-wrap: wrap;
+            }
+
+            .trends-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <a href="#" class="logo">研发效能洞察</a>
+                <nav>
+                    <ul>
+                        <li><a href="#dashboard">仪表板</a></li>
+                        <li><a href="#insights">洞察建议</a></li>
+                        <li><a href="#trends">趋势分析</a></li>
+                        <li><a href="#reports">报告</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <section class="hero">
+                <h1>研发团队效能洞察</h1>
+                <p>通过数据驱动的方式，实时监控关键指标，识别瓶颈，优化流程，提升团队生产力</p>
+            </section>
+
+            <section class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">交付周期</div>
+                    <div class="metric-value">12.5</div>
+                    <div class="metric-change positive">
+                        <span>↑</span>
+                        <span>较上周 -15%</span>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">代码质量</div>
+                    <div class="metric-value">94.2%</div>
+                    <div class="metric-change positive">
+                        <span>↑</span>
+                        <span>较上周 +3.2%</span>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">团队效率</div>
+                    <div class="metric-value">87.6%</div>
+                    <div class="metric-change positive">
+                        <span>↑</span>
+                        <span>较上周 +5.8%</span>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <div class="metric-label">缺陷密度</div>
+                    <div class="metric-value">2.3</div>
+                    <div class="metric-change negative">
+                        <span>↓</span>
+                        <span>较上周 +0.8</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section" id="dashboard">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">实时监控仪表板</h2>
+                        <p class="section-subtitle">全方位监控研发团队的关键效能指标</p>
+                    </div>
+                    <div class="time-filter">
+                        <button class="filter-btn active">7天</button>
+                        <button class="filter-btn">30天</button>
+                        <button class="filter-btn">90天</button>
+                        <button class="filter-btn">1年</button>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3 class="card-title">交付效率</h3>
+                        </div>
+                        <div class="card-value">156</div>
+                        <p class="card-subtitle">本周完成交付数</p>
+                        <div class="progress-list">
+                            <div class="progress-item">
+                                <div class="progress-header">
+                                    <span class="progress-label">按时交付率</span>
+                                    <span class="progress-value">92%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 92%;"></div>
+                                </div>
+                            </div>
+                            <div class="progress-item">
+                                <div class="progress-header">
+                                    <span class="progress-label">需求完成率</span>
+                                    <span class="progress-value">88%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 88%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3 class="card-title">代码质量</h3>
+                        </div>
+                        <div class="card-value">94.2%</div>
+                        <p class="card-subtitle">代码审查覆盖率</p>
+                        <div class="progress-list">
+                            <div class="progress-item">
+                                <div class="progress-header">
+                                    <span class="progress-label">代码审查率</span>
+                                    <span class="progress-value">92%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 92%;"></div>
+                                </div>
+                            </div>
+                            <div class="progress-item">
+                                <div class="progress-header">
+                                    <span class="progress-label">测试覆盖率</span>
+                                    <span class="progress-value">87%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 87%;"></div>
+                                </div>
+                            </div>
+                            <div class="progress-item">
+                                <div class="progress-header">
+                                    <span class="progress-label">构建成功率</span>
+                                    <span class="progress-value">97%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 97%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3 class="card-title">团队协作</h3>
+                        </div>
+                        <div class="card-value">8.2</div>
+                        <p class="card-subtitle">平均每人每天协作次数</p>
+                        <div class="progress-list">
+                            <div class="progress-item">
+                                <div class="progress-header">
+                                    <span class="progress-label">代码评审参与度</span>
+                                    <span class="progress-value">85%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 85%;"></div>
+                                </div>
+                            </div>
+                            <div class="progress-item">
+                                <div class="progress-header">
+                                    <span class="progress-label">技术分享参与度</span>
+                                    <span class="progress-value">78%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 78%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section" id="insights">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">智能洞察建议</h2>
+                        <p class="section-subtitle">基于数据分析的个性化改进建议</p>
+                    </div>
+                </div>
+
+                <div class="insights-grid">
+                    <div class="insight-card">
+                        <span class="insight-badge suggestion">改进建议</span>
+                        <h3 class="insight-title">优化代码审查流程</h3>
+                        <p class="insight-description">当前代码审查率为 92.3%，距离目标 95% 还有提升空间。建议引入自动化代码审查工具，设置审查 SLA，并定期进行审查质量评估。</p>
+                        <div class="insight-actions">
+                            <button class="btn btn-primary">查看详情</button>
+                            <button class="btn btn-secondary">稍后提醒</button>
+                        </div>
+                    </div>
+
+                    <div class="insight-card">
+                        <span class="insight-badge warning">风险预警</span>
+                        <h3 class="insight-title">交付周期上升趋势</h3>
+                        <p class="insight-description">过去两周交付周期从 10.8 天上升至 12.5 天，增长 15.7%。建议检查是否有新的流程瓶颈或资源分配问题。</p>
+                        <div class="insight-actions">
+                            <button class="btn btn-primary">深入分析</button>
+                            <button class="btn btn-secondary">忽略</button>
+                        </div>
+                    </div>
+
+                    <div class="insight-card">
+                        <span class="insight-badge suggestion">改进建议</span>
+                        <h3 class="insight-title">提升测试覆盖率</h3>
+                        <p class="insight-description">测试覆盖率为 87.6%，建议增加核心模块的单元测试，引入集成测试自动化，并设置覆盖率门禁。</p>
+                        <div class="insight-actions">
+                            <button class="btn btn-primary">查看计划</button>
+                            <button class="btn btn-secondary">稍后提醒</button>
+                        </div>
+                    </div>
+
+                    <div class="insight-card">
+                        <span class="insight-badge suggestion">改进建议</span>
+                        <h3 class="insight-title">加强团队协作</h3>
+                        <p class="insight-description">团队协作频率为 8.2 次/天，建议引入代码配对、技术分享会、定期团队回顾等活动，提升协作效率。</p>
+                        <div class="insight-actions">
+                            <button class="btn btn-primary">查看方案</button>
+                            <button class="btn btn-secondary">稍后提醒</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section" id="trends">
+                <div class="trends-section">
+                    <div class="trends-header">
+                        <h3 class="section-title">效能指标趋势</h3>
+                        <div class="trends-legend">
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background-color: var(--primary-color);"></div>
+                                <span>交付周期</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background-color: var(--secondary-color);"></div>
+                                <span>代码质量</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background-color: var(--success-color);"></div>
+                                <span>团队效率</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chart-container">
+                        <svg viewBox="0 0 1000 300" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" style="stop-color:var(--primary-color);stop-opacity:0.2" />
+                                    <stop offset="100%" style="stop-color:var(--primary-color);stop-opacity:0" />
+                                </linearGradient>
+                            </defs>
+                            <path d="M0,250 Q166,220 333,190 T500,160 T666,130 T833,100 T1000,70 L1000,300 L0,300 Z" 
+                                  fill="url(#chartGradient)" 
+                                  opacity="0.3"/>
+                            <path d="M0,250 Q166,220 333,190 T500,160 T666,130 T833,100 T1000,70" 
+                                  fill="none" 
+                                  stroke="var(--primary-color)" 
+                                  stroke-width="3"/>
+                            <path d="M0,200 Q166,180 333,150 T500,120 T666,90 T833,60 T1000,30" 
+                                  fill="none" 
+                                  stroke="var(--secondary-color)" 
+                                  stroke-width="3"/>
+                            <path d="M0,150 Q166,130 333,100 T500,70 T666,40 T833,10 T1000,-20" 
+                                  fill="none" 
+                                  stroke="var(--success-color)" 
+                                  stroke-width="3"/>
+                        </svg>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <h4>研发效能洞察</h4>
+                    <p>通过数据驱动的方式，帮助研发团队持续提升效能，实现更快的交付和更高的质量。</p>
+                </div>
+                <div class="footer-links">
+                    <h5>产品</h5>
+                    <ul>
+                        <li><a href="#">功能特性</a></li>
+                        <li><a href="#">集成方案</a></li>
+                        <li><a href="#">API 文档</a></li>
+                        <li><a href="#">更新日志</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h5>支持</h5>
+                    <ul>
+                        <li><a href="#">帮助中心</a></li>
+                        <li><a href="#">最佳实践</a></li>
+                        <li><a href="#">联系我们</a></li>
+                        <li><a href="#">反馈建议</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h5>公司</h5>
+                    <ul>
+                        <li><a href="#">关于我们</a></li>
+                        <li><a href="#">加入团队</a></li>
+                        <li><a href="#">隐私政策</a></li>
+                        <li><a href="#">服务条款</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 研发效能洞察. 保留所有权利.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+
+            const navLinks = document.querySelectorAll('nav a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    const href = this.getAttribute('href');
+                    if (href.startsWith('#')) {
+                        e.preventDefault();
+                        const target = document.querySelector(href);
+                        if (target) {
+                            target.scrollIntoView({ behavior: 'smooth' });
+                        }
+                    }
+                });
+            });
+
+            const progressFills = document.querySelectorAll('.progress-fill');
+            progressFills.forEach(fill => {
+                const width = fill.style.width;
+                fill.style.width = '0%';
+                setTimeout(() => {
+                    fill.style.width = width;
+                }, 500);
+            });
+        });
+    </script>
+</body>
+</html>
