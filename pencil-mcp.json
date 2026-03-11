@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "pencildev-server": {
+      "command": "C:\\Users\\24565\\.trae-cn\\extensions\\highagency.pencildev-0.6.30-universal\\out\\mcp-server-windows-x64",
+      "args": [
+        "--app",
+        "trae_cn"
+    ],
+      "env": {
+      }
+    }
+  }
+}
